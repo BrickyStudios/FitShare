@@ -24,6 +24,8 @@ import com.fitshare.ui.screens.EditorScreen
 import com.fitshare.ui.screens.ImportScreen
 import com.fitshare.ui.theme.FitShareTheme
 import kotlinx.coroutines.launch
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 class MainActivity : ComponentActivity() {
 
@@ -37,6 +39,9 @@ class MainActivity : ComponentActivity() {
                 val workoutViewModel: WorkoutViewModel = viewModel()
                 val context = LocalContext.current
                 val scope = rememberCoroutineScope()
+                val storagePermissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission()
+                ) { /* Permission result handled — user can tap share again if denied */ }
 
                 // Handle incoming intent (Gadgetbridge sharing directly to FitShare)
                 LaunchedEffect(Unit) {
@@ -69,13 +74,20 @@ class MainActivity : ComponentActivity() {
                                 onShare = {
                                     val workout = (state as WorkoutState.Success).workout
                                     scope.launch {
+                                        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q &&
+                                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                                context,
+                                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                                        ) {
+                                            storagePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                            return@launch
+                                        }
                                         try {
                                             val bitmap = StoryRenderer.renderToBitmap(
                                                 context, workout, backgroundUri
                                             )
-                                            // Save to gallery
                                             ShareHelper.saveBitmapToGallery(context, bitmap)
-                                            // Share
                                             val shareUri = ShareHelper.saveBitmapForSharing(context, bitmap)
                                             if (shareUri != null) {
                                                 ShareHelper.shareImage(

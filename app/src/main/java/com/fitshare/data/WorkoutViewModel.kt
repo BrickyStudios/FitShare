@@ -47,7 +47,13 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             _gpsTrack.value = null
             try {
                 val context = getApplication<Application>()
-                val filename = uri.lastPathSegment ?: ""
+                val filename = context.contentResolver.query(
+                    uri,
+                    arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+                    null, null, null
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) cursor.getString(0) else null
+                } ?: uri.lastPathSegment ?: ""
                 val jsonString = context.contentResolver.openInputStream(uri)
                     ?.bufferedReader()
                     ?.use { it.readText() }

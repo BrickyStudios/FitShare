@@ -18,6 +18,9 @@ import com.fitshare.ui.theme.FitShareTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 object StoryRenderer {
 
@@ -89,6 +92,18 @@ object StoryRenderer {
 
         // Middle section Y position (~60% down)
         var y = height * 0.6f
+
+        // Date
+        if (workout.dateTimeMillis > 0) {
+            val datePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#8A9BBF")
+                textSize = height * 0.018f
+            }
+            val dateStr = SimpleDateFormat("d. MMMM yyyy", Locale.GERMAN)
+                .format(Date(workout.dateTimeMillis))
+            canvas.drawText(dateStr, paddingH, y, datePaint)
+            y += datePaint.textSize * 1.5f
+        }
 
         // Activity label
         val labelPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {

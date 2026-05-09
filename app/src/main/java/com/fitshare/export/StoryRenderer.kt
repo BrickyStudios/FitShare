@@ -32,31 +32,37 @@ object StoryRenderer {
         context: Context,
         workout: WorkoutData,
         backgroundUri: Uri?
-    ): Bitmap = withContext(Dispatchers.Main) {
-        val width = 1080
-        val height = 1920
+    ): Bitmap {
+        val backgroundBitmap = backgroundUri?.let { uri ->
+            withContext(Dispatchers.IO) {
+                try {
+                    context.contentResolver.openInputStream(uri)?.use {
+                        android.graphics.BitmapFactory.decodeStream(it)
+                    }
+                } catch (e: Exception) { null }
+            }
+        }
 
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(bitmap)
+        return withContext(Dispatchers.Main) {
+            val width = 1080
+            val height = 1920
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
 
-        // Draw gradient background directly onto bitmap canvas
-        val gradientStart = workout.activityType.gradientStart
-        val gradientEnd = workout.activityType.gradientEnd
+            if (backgroundBitmap != null) {
+                drawCroppedBitmap(canvas, backgroundBitmap, width, height)
+                backgroundBitmap.recycle()
+                val overlayPaint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.argb(140, 0, 0, 0)
+                }
+                canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), overlayPaint)
+            } else {
+                drawGradientBackground(canvas, workout, width, height)
+            }
 
-        val paint = android.graphics.Paint()
-        val shader = android.graphics.LinearGradient(
-            0f, 0f, 0f, height.toFloat(),
-            gradientStart.toArgb(),
-            gradientEnd.toArgb(),
-            android.graphics.Shader.TileMode.CLAMP
-        )
-        paint.shader = shader
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-
-        // Draw content
-        drawWorkoutContent(canvas, workout, width, height)
-
-        bitmap
+            drawWorkoutContent(canvas, workout, width, height)
+            bitmap
+        }
     }
 
     private fun drawWorkoutContent(
@@ -255,5 +261,46 @@ object StoryRenderer {
         } else {
             "%.0f".format(distanceMeters) to "m"
         }
+    }
+
+    private fun drawGradientBackground(
+        canvas: android.graphics.Canvas,
+        workout: WorkoutData,
+        width: Int,
+        height: Int
+    ) {
+        val gradientStart = workout.activityType.gradientStart
+        val gradientEnd = workout.activityType.gradientEnd
+        val paint = android.graphics.Paint()
+        val shader = android.graphics.LinearGradient(
+            0f, 0f, 0f, height.toFloat(),
+            gradientStart.toArgb(),
+            gradientEnd.toArgb(),
+            android.graphics.Shader.TileMode.CLAMP
+        )
+        paint.shader = shader
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+    }
+
+    private fun drawCroppedBitmap(
+        canvas: android.graphics.Canvas,
+        src: android.graphics.Bitmap,
+        dstW: Int,
+        dstH: Int
+    ) {
+        val srcAspect = src.width.toFloat() / src.height
+        val dstAspect = dstW.toFloat() / dstH
+        val srcRect: android.graphics.Rect
+        if (srcAspect > dstAspect) {
+            val w = (src.height * dstAspect).toInt()
+            val x = (src.width - w) / 2
+            srcRect = android.graphics.Rect(x, 0, x + w, src.height)
+        } else {
+            val h = (src.width / dstAspect).toInt()
+            val y = (src.height - h) / 2
+            srcRect = android.graphics.Rect(0, y, src.width, y + h)
+        }
+        val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
+        canvas.drawBitmap(src, srcRect, android.graphics.Rect(0, 0, dstW, dstH), paint)
     }
 }

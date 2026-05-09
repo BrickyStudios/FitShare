@@ -206,7 +206,6 @@ private fun buildPrimaryStats(workout: WorkoutData): List<Pair<String, String>> 
     workout.primaryPaceFormatted()?.let { stats.add(it to workout.primaryPaceLabel()) }
     when (workout.activityType) {
         com.fitshare.data.ActivityType.SWIMMING -> {
-            workout.swimStyle?.let { stats.add(it.labelDe to "Stil") }
             if (workout.laps > 0) stats.add(workout.laps.toString() to "Bahnen")
         }
         com.fitshare.data.ActivityType.RUNNING -> {

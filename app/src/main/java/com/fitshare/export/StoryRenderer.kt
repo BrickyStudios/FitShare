@@ -216,7 +216,6 @@ object StoryRenderer {
         workout.primaryPaceFormatted()?.let { stats.add(it to workout.primaryPaceLabel()) }
         when (workout.activityType) {
             com.fitshare.data.ActivityType.SWIMMING -> {
-                workout.swimStyle?.let { stats.add(it.labelDe to "Stil") }
                 if (workout.laps > 0) stats.add(workout.laps.toString() to "Bahnen")
             }
             com.fitshare.data.ActivityType.RUNNING -> {
@@ -233,6 +232,7 @@ object StoryRenderer {
         if (workout.strokes > 0) stats.add(workout.strokes.toString() to "Züge")
         if (workout.swolfAvg > 0) stats.add(workout.swolfAvg.toString() to "SWOLF")
         if (workout.averageHR > 0) stats.add(workout.averageHR.toString() to "Ø Puls")
+        if (workout.maxHR > 0) stats.add(workout.maxHR.toString() to "Max Puls")
         return stats.take(3)
     }
 

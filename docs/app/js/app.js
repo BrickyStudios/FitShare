@@ -211,6 +211,7 @@ function controls(w) {
 
 function show() {
   const w = workout();
+  if (!!w === $("editor").hidden) scrollTo(0, 0); // switching screens starts at the top
   $("import").hidden = !!w; $("editor").hidden = !w;
   if (!w) { document.documentElement.style.setProperty("--accent", "#C6F432"); return; }
   $("error").hidden = true;
@@ -299,6 +300,27 @@ $("name-dialog").addEventListener("close", () => {
 // ------------------------------------------------------------------ wiring
 
 $("pick").onclick = () => $("files").click();
+$("demo").onclick = () => { const { stats, route } = D.demoWorkout(); state.stats = stats; state.route = route; state.sport = null; setBackground(null); saveSession(); show(); };
+
+// start screen: the steps for one fitness app at a time; the browser can't see installed apps, so it remembers the last pick
+let source = D.SOURCES.find((x) => x.id === store.get("source", null)) || D.SOURCES.at(-1);
+function showSources() {
+  $("sources").replaceChildren(...D.SOURCES.map((x) => {
+    const b = chip(D.sourceTitle(x), x === source, () => { source = x; store.set("source", x.id); showSources(); });
+    b.role = "tab"; b.setAttribute("aria-selected", x === source);
+    return b;
+  }));
+  const step = (title, [de, en]) => { const li = document.createElement("li"), b = document.createElement("b"), sp = document.createElement("span"); b.textContent = title; sp.textContent = tr(de, en); li.append(b, sp); return li; };
+  $("steps").replaceChildren(
+    step(tr("Werte", "Numbers"), source.numbers),
+    step(tr("Karte · optional", "Map · optional"), source.map),
+    step("Sticker", ["Gestalten, als PNG sichern, in Instagram als Foto-Sticker einfügen.", "Style it, save the PNG, add it in Instagram as a photo sticker."]),
+  );
+  // bring the picked chip into view sideways only; scrollIntoView would also move the page
+  const row = $("sources"), on = row.querySelector('[aria-pressed="true"]');
+  if (on && (on.offsetLeft < row.scrollLeft || on.offsetLeft + on.offsetWidth > row.scrollLeft + row.clientWidth)) row.scrollLeft = on.offsetLeft - 20;
+}
+showSources();
 $("files").onchange = (e) => { open(e.target.files); e.target.value = ""; };
 $("photo").onclick = () => { if (state.backgroundUrl) { setBackground(null); show(); } else $("photo-input").click(); };
 $("photo-input").onchange = (e) => { setBackground(e.target.files[0]); e.target.value = ""; show(); };

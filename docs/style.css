@@ -86,3 +86,9 @@ footer a { color: var(--muted); }
   .top nav { gap: 0 16px; width: 100%; }
 }
 .steps span { overflow-wrap: anywhere; }
+
+/* one-line pointer to the page in the other language (shown by a tiny inline script) */
+.langbar { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; padding: 4px 12px; background: var(--raised); border-bottom: 1px solid var(--hair); font-size: 15px; }
+.langbar[hidden] { display: none; }
+.langbar a { padding: 10px 4px; font-weight: 600; }
+.langbar button { font: inherit; color: var(--muted); background: none; border: 0; min-width: 44px; min-height: 44px; cursor: pointer; }

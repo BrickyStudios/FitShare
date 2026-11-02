@@ -90,13 +90,14 @@ The code is plain JavaScript in `docs/app`, a port of the Kotlin parser and rend
 
 ## How to use it
 
-1. In your fitness app, open the workout, tap **Share** and pick FitShare. From Gadgetbridge: ⋮ → **Share FIT File** (Share JSON Details works too).
-2. For the map, share the route as GPX, TCX or KMZ to FitShare as well, or tap **Choose files** and pick workout and route together.
-3. Check the sport, then pick layout, stats, colour and extras.
-4. Tap **Save PNG**. In Instagram, open a story, tap Stickers → Photo and pick the PNG.
+1. Open FitShare and pick your fitness app at the top. The steps below it change to that app's menus. FitShare preselects the app you have installed, or the one that last shared into it, and **Open Mi Fitness** (or Garmin Connect, …) jumps straight there.
+2. In your fitness app, open the workout, tap **Share** and pick FitShare. From Gadgetbridge: ⋮ → **Share FIT File**. No app at hand? **Pick screenshot** takes a picture from the gallery, **Pick file** takes FIT, TCX, GPX, KML, KMZ or JSON. **See an example first** opens the editor with an invented ride.
+3. For the map, share the route as GPX, TCX or KMZ to FitShare as well, or pick workout and route together.
+4. Check the sport, then pick layout, stats, colour and extras.
+5. Tap **Save PNG**. In Instagram, open a story, tap Stickers → Photo and pick the PNG.
 
 <p align="center">
-  <img src="docs/bilder/app-start.png" width="220" alt="FitShare start screen with the button to choose a Gadgetbridge JSON and a route file">
+  <img src="docs/bilder/app-start.png" width="220" alt="FitShare start screen: a row of fitness apps with Mi Fitness picked, its three steps, and buttons to open Mi Fitness, pick a screenshot or a file, or see an example">
   <img src="docs/bilder/app-editor.png" width="220" alt="FitShare editor: overlay preview on a checkerboard, tabs for layout, stats, colour, extras and sport, Save PNG button">
 </p>
 

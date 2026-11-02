@@ -197,6 +197,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun clearRoute() = _state.update { it.copy(route = null) }
     fun clearError() = _state.update { it.copy(error = null) }
     fun showError(message: String) = _state.update { it.copy(error = message) }
+
+    fun openDemo() {
+        val (stats, route) = Demo.workout()
+        _state.value = UiState(stats = stats, route = route)
+    }
+
+    /** The fitness app picked on the start screen, or the one that last shared into FitShare. */
+    fun lastSource(): Source? = Source.fromName(prefs.getString("source", null))
+    fun rememberSource(source: Source) = prefs.edit().putString("source", source.name).apply()
     fun reset() {
         _state.value = UiState()
         viewModelScope.launch(Dispatchers.IO) { deleteBackgrounds(except = null) }

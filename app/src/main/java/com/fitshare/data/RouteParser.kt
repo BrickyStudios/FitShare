@@ -200,7 +200,7 @@ object RouteParser {
         }
     }
 
-    private fun haversine(a: Pt, b: Pt): Double {
+    internal fun haversine(a: Pt, b: Pt): Double {
         val r = 6_371_000.0
         val p1 = Math.toRadians(a.lat); val p2 = Math.toRadians(b.lat)
         val dp = p2 - p1; val dl = Math.toRadians(b.lon - a.lon)

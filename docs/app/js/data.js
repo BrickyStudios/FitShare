@@ -630,3 +630,61 @@ export function parseShareCard(text) {
     averageHR: avgHr, maxHR: maxHr, steps: sm ? int(sm[1]) : 0, sport, elevationGainMeters: elevation,
   };
 }
+
+// ------------------------------------------------------------------ start screen: where the workout comes from
+
+const SAVE = ["Bild sichern, dann hier wählen.", "save the picture, then pick it here."];
+/** Same apps as Source.kt in the Android app; the web app can't open them, so every path ends in "save, then pick here". */
+export const SOURCES = [
+  { id: "MI_FITNESS", label: "Mi Fitness",
+    numbers: [`Training öffnen → Teilen → ${SAVE[0]}`, `Open the workout → Share → ${SAVE[1]}`],
+    map: ["Training → Exportieren → GPX → ⋯ → in Dateien sichern, dann hier wählen. Ohne GPS gibt es nur TCX: Werte, keine Karte.", "Workout → Export → GPX → ⋯ → save to Files, then pick it here. Without GPS there is only TCX: numbers, no map."] },
+  { id: "GARMIN", label: "Garmin Connect",
+    numbers: [`Aktivität öffnen → Teilen → ${SAVE[0]}`, `Open the activity → Share → ${SAVE[1]}`],
+    map: ["Auf connect.garmin.com: Aktivität → ⚙ → „Nach GPX exportieren“.", "On connect.garmin.com: activity → ⚙ → “Export to GPX”."] },
+  { id: "ZEPP", label: "Zepp",
+    numbers: [`Training öffnen → Teilen → ${SAVE[0]}`, `Open the workout → Share → ${SAVE[1]}`],
+    map: ["Training → GPX exportieren (Uhren mit GPS).", "Workout → Export GPX (watches with GPS)."] },
+  { id: "HUAWEI", label: "Huawei Health",
+    numbers: [`Training öffnen → Teilen → ${SAVE[0]}`, `Open the workout → Share → ${SAVE[1]}`],
+    map: ["Routen-Symbol → Route exportieren → GPX.", "Route icon → Export route → GPX."] },
+  { id: "SAMSUNG", label: "Samsung Health",
+    numbers: [`Training öffnen → Teilen → ${SAVE[0]}`, `Open the workout → Share → ${SAVE[1]}`],
+    map: ["Ganz unten im Training: Als GPX exportieren.", "At the bottom of the workout: Export as GPX file."] },
+  { id: "STRAVA", label: "Strava",
+    numbers: [`Aktivität öffnen → Teilen → ${SAVE[0]}`, `Open the activity → Share → ${SAVE[1]}`],
+    map: ["Auf strava.com: Aktivität → ⋯ → GPX exportieren.", "On strava.com: activity → ⋯ → Export GPX."] },
+  { id: "GADGETBRIDGE", label: "Gadgetbridge",
+    numbers: ["Training öffnen → ⋮ → „Fit-Datei teilen“ → in Dateien sichern, dann hier wählen.", "Open the workout → ⋮ → “Share FIT File” → save to Files, then pick it here."],
+    map: ["Steckt schon in der FIT, wenn die Uhr GPS hat. Sonst die Route mit OpenTracks aufzeichnen.", "Already in the FIT if the watch has GPS. Otherwise record the route with OpenTracks."] },
+  { id: "OTHER", label: null,
+    numbers: ["Screenshot vom Training wählen, oder eine Datei aus Polar Flow, COROS & Co. (FIT, TCX, GPX).", "Pick a screenshot of the workout, or a file from Polar Flow, COROS and others (FIT, TCX, GPX)."],
+    map: ["GPX, TCX, KML oder KMZ dazuwählen.", "Pick a GPX, TCX, KML or KMZ as well."] },
+];
+export const sourceTitle = (s) => s.label ?? tr("Andere", "Other");
+
+/** An invented gravel loop for "See an example" (same as Demo.kt). */
+export function demoWorkout() {
+  const START = 1782036000000;
+  const pts = [];
+  let time = START, prev = null;
+  for (let i = 0; i <= 600; i++) {
+    const t = (2 * Math.PI * i) / 600;
+    const lat = 48.30 + 0.75 * (0.045 * Math.sin(t) + 0.014 * Math.sin(2 * t + 1.1) + 0.004 * Math.sin(9 * t + 0.4) + 0.002 * Math.sin(23 * t));
+    const lon = 9.90 + 0.75 * (0.068 * Math.cos(t) + 0.018 * Math.cos(3 * t + 0.5) + 0.005 * Math.sin(7 * t + 2.0) + 0.002 * Math.cos(19 * t));
+    const ele = 480 + 55 * Math.sin(2 * t) + 18 * Math.sin(5 * t + 1);
+    const p = { lat, lon, ele };
+    if (prev) time += (haversine(prev, p) / (6.6 + 1.4 * Math.cos(3 * t))) * 1000;
+    pts.push({ ...p, time: Math.trunc(time) });
+    prev = p;
+  }
+  const route = buildRoute([pts]);
+  const hr = Array.from({ length: 120 }, (_, i) => 128 + 22 * Math.sin((Math.PI * i) / 60) + 9 * Math.sin((2 * Math.PI * i) / 13));
+  const stats = {
+    ...emptyStats(), startMillis: START, activeSeconds: route.movingSeconds, distanceMeters: route.distanceMeters,
+    calories: 812, averageHR: Math.trunc(hr.reduce((a, b) => a + b, 0) / hr.length), maxHR: Math.trunc(Math.max(...hr)) + 4,
+    hrZoneSeconds: [0.08, 0.27, 0.41, 0.19, 0.05].map((f) => f * route.movingSeconds), sport: "CYCLING",
+    elevationGainMeters: route.elevationGainMeters, hrCurve: hr,
+  };
+  return { stats, route };
+}

@@ -217,3 +217,13 @@ test("garmin tcx laps are summed", () => {
   assert.equal(s.startMillis, 1782036000000);
   assert.equal(D.parseTcxStats("<TrainingCenterDatabase><Lap></Lap></TrainingCenterDatabase>"), null);
 });
+
+test("start screen sources and demo", () => {
+  assert.equal(D.SOURCES.at(-1).id, "OTHER");
+  for (const s of D.SOURCES) { assert.equal(s.numbers.length, 2); assert.equal(s.map.length, 2); }
+  const { stats, route } = D.demoWorkout();
+  assert.ok(route.distanceMeters > 25000 && route.distanceMeters < 40000);
+  assert.ok(route.splitSeconds.length >= 25);
+  assert.equal(stats.hrCurve.length, 120);
+  assert.equal(stats.sport, "CYCLING");
+});

@@ -10,6 +10,20 @@
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
+    <!-- The start screen preselects and opens the fitness app you use (Source.kt). Keep in sync. -->
+    <queries>
+        <package android:name="com.xiaomi.wearable" />
+        <package android:name="com.mi.health" />
+        <package android:name="com.garmin.android.apps.connectmobile" />
+        <package android:name="com.huami.watch.hmwatchmanager" />
+        <package android:name="com.xiaomi.hm.health" />
+        <package android:name="com.huawei.health" />
+        <package android:name="com.sec.android.app.shealth" />
+        <package android:name="com.strava" />
+        <package android:name="nodomain.freeyourgadget.gadgetbridge" />
+        <package android:name="nodomain.freeyourgadget.gadgetbridge.nightly" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

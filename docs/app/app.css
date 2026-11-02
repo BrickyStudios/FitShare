@@ -30,6 +30,8 @@ h1 em { font-style: normal; color: var(--volt); }
 .steps b { font-size: 13px; letter-spacing: .18em; text-transform: uppercase; }
 .steps span { color: var(--muted); }
 .error { background: rgba(255,61,90,.13); color: #FF8A80; border-radius: 14px; padding: 14px; white-space: pre-line; }
+#sources { margin-bottom: 18px; position: relative; }
+.demo { display: block; width: 100%; min-height: 48px; margin-top: 6px; font-weight: 700; }
 .hint { color: var(--muted); font-size: 15px; text-align: center; margin: 12px 0 0; }
 .hint.small { font-size: 14px; }
 

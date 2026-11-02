@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -104,6 +105,7 @@ fun BigButton(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = Volt,
+    contentColor: Color = OnAccent,
     busy: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -117,7 +119,7 @@ fun BigButton(
             .background(bg),
         contentAlignment = Alignment.Center
     ) {
-        if (busy) CircularProgressIndicator(color = OnAccent, strokeWidth = 2.5.dp, modifier = Modifier.size(24.dp))
-        else Text(text, style = Type.button, color = OnAccent)
+        if (busy) CircularProgressIndicator(color = contentColor, strokeWidth = 2.5.dp, modifier = Modifier.size(24.dp))
+        else Text(text, style = Type.button, color = contentColor, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(horizontal = 12.dp))
     }
 }

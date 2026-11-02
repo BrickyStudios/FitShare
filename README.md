@@ -11,6 +11,7 @@
   <a href="#what-it-does"><img alt="Routes from GPX, KML and KMZ" src="https://img.shields.io/badge/Routes-GPX_·_KML_·_KMZ-C6F432?labelColor=0C0D0B"></a>
   <a href="#what-it-does"><img alt="English and German" src="https://img.shields.io/badge/Languages-EN_·_DE-C6F432?labelColor=0C0D0B"></a>
   <a href="#what-it-does"><img alt="No tracking" src="https://img.shields.io/badge/Tracking-none-C6F432?labelColor=0C0D0B"></a>
+  <a href="LICENSE"><img alt="License GPL-3.0" src="https://img.shields.io/github/license/BrickyStudios/FitShare?color=C6F432&labelColor=0C0D0B"></a>
   <a href="https://github.com/BrickyStudios/FitShare/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/BrickyStudios/FitShare?label=release&color=C6F432&labelColor=0C0D0B"></a>
   <a href="https://github.com/BrickyStudios/FitShare/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/BrickyStudios/FitShare?color=C6F432&labelColor=0C0D0B"></a>
 </p>
@@ -80,5 +81,9 @@ Android 8.0 or newer. Download the APK from [Releases](https://github.com/Bricky
 ```
 
 Kotlin, Jetpack Compose, JDK 17. One Canvas renderer draws both the preview and the export, so what you save is what you saw. Without the signing secrets, release builds use the debug key. Fonts: [Big Shoulders Display](https://fonts.google.com/specimen/Big+Shoulders+Display) and [Archivo](https://fonts.google.com/specimen/Archivo), both under the SIL Open Font License (`app/src/main/assets/fonts`).
+
+## License
+
+[GPL-3.0](LICENSE), the same licence Gadgetbridge and OpenTracks use. You can use, change and share FitShare; if you distribute a changed version, publish its source under GPL-3.0 too. The bundled fonts keep their own SIL Open Font License.
 
 FitShare is an independent project and is not affiliated with Gadgetbridge, Strava, Instagram or Meta.

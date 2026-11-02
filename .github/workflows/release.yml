@@ -66,15 +66,10 @@ jobs:
           tag_name: ${{ steps.tag.outputs.value }}
           name: FitShare ${{ steps.tag.outputs.value }}
           body: |
-            ## FitShare ${{ steps.tag.outputs.value }}
+            Download `FitShare-${{ steps.tag.outputs.value }}.apk` below and install it, or add
+            `https://github.com/BrickyStudios/FitShare` to Obtainium to get updates automatically.
 
-            ### Installation via Obtainium
-            1. Öffne Obtainium
-            2. Füge hinzu: `https://github.com/BrickyStudios/FitShare`
-            3. Obtainium findet die APK automatisch
-
-            ### Manuelle Installation
-            Lade `FitShare-${{ steps.tag.outputs.value }}.apk` herunter und installiere sie auf deinem Android-Gerät.
+            Android 8.0 or newer. See the README for what changed.
           files: app/build/outputs/apk/release/FitShare-${{ steps.tag.outputs.value }}.apk
           draft: false
           prerelease: false

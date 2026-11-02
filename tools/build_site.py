@@ -169,8 +169,8 @@ APP_STEPS_DE = [
 
 # ------------------------------------------------------------------ English home
 
-HOME_DESC = ("Turn workouts from Mi Fitness, Garmin Connect, Gadgetbridge and other fitness apps into Instagram story "
-             "stickers with distance, time, route and heart rate. Free Android app, offline.")
+HOME_DESC = ("Turn a Mi Fitness, Garmin Connect or Strava workout into an Instagram story sticker with distance, time, "
+             "route and heart rate. Free, Android app or web app.")
 GB_STEPS = [
     "In Gadgetbridge, open the workout and tap ⋮ → <b>Share FIT File</b>.",
     "Pick <b>FitShare</b> in the share sheet.",
@@ -187,7 +187,7 @@ home_faq, home_faq_schema = faq([
     ("Is it on Google Play?", "Not yet. Install the APK from GitHub Releases, or add the repository to Obtainium for automatic updates."),
     ("Does my data leave the phone?", "No. Text recognition runs on the phone, and the app has no internet permission, so it cannot upload anything."),
 ])
-page("", "en", "FitShare: Instagram story stickers from Mi Fitness, Garmin Connect and Gadgetbridge", HOME_DESC, f"""
+page("", "en", "FitShare: Instagram story stats sticker for any fitness app", HOME_DESC, f"""
 <section class="hero">
 <p class="kicker">FREE ANDROID APP · OPEN SOURCE</p>
 <h1>Your workout.<br><span>As a sticker.</span></h1>
@@ -205,6 +205,7 @@ page("", "en", "FitShare: Instagram story stickers from Mi Fitness, Garmin Conne
 <div><h3>Four overlay layouts</h3><p>Stack, Row, Card and Map. Pick up to four stats in your order, white, black or the sport's colour. Or a finished design, Night or Race bib, as a 9:16 story or 4:5 post.</p></div>
 <div><h3>Elevation, heart rate, splits</h3><p>Elevation profile, heart rate graph, km splits with your fastest kilometre, heart rate zones.</p></div>
 <div><h3>Your look, one tap away</h3><p>Save a setup as a named look. The last eight exports stay in a history, so the next workout looks like the last one.</p></div>
+<div><h3>iPhone and desktop too</h3><p>The <a href="app/">web app</a> does the same in Safari, Chrome or Firefox, without installing anything. Your files stay on the device.</p></div>
 <div><h3>No subscription</h3><p>Elevation profile, splits and heart rate zones are free. Nothing in FitShare sits behind a paid plan.</p></div>
 <div><h3>Stays on your phone</h3><p>Text recognition runs on the phone. No account, no analytics, no internet permission.</p></div>
 </section>
@@ -212,6 +213,7 @@ page("", "en", "FitShare: Instagram story stickers from Mi Fitness, Garmin Conne
 <h2>Guides</h2>
 <ul class="links">
 <li><a href="fitness-app-instagram-sticker/">Every fitness app: share button and GPX export at a glance</a></li>
+<li><a href="iphone-instagram-story-sticker/">Fitness stats sticker on iPhone, without an app</a></li>
 <li><a href="garmin-connect-instagram-story/">Garmin Connect workouts as an Instagram story sticker</a></li>
 <li><a href="mi-band-instagram-story/">Mi Fitness, Zepp and Mi Band workouts in your story</a></li>
 <li><a href="gadgetbridge-instagram-story/">How to share a Gadgetbridge workout to Instagram</a></li>
@@ -268,7 +270,7 @@ page("strava-sticker-alternative/", "en", "Strava stats sticker alternative with
 <li>No account and no upload. The app has no internet permission.</li>
 </ul>
 <h2>Where the data comes from</h2>
-<p>From <a href="https://gadgetbridge.org/">Gadgetbridge</a> (FIT or JSON), from OpenTracks (KMZ or GPX), or from any GPX file, including a GPX exported from Strava or Komoot.</p>
+<p>From the share picture of Strava, Garmin Connect or Mi Fitness, from <a href="https://gadgetbridge.org/">Gadgetbridge</a> (FIT or JSON), from OpenTracks (KMZ or GPX), or from any GPX file, including one exported from Strava or Komoot. On an iPhone, use the <a href="../app/">web app</a>.</p>
 {cta()}
 {strava_faq}
 <p class="small">Strava is a trademark of Strava, Inc. FitShare is an independent project.</p>
@@ -281,14 +283,15 @@ band_faq, band_faq_schema = faq([
     ("Why is the distance missing?", "Bands without GPS often don't store distance. FitShare takes distance, time and elevation from a route recorded on the phone, for example with OpenTracks."),
     ("Does it show heart rate zones?", "Yes, when the band records them. FIT exports from Gadgetbridge include the time in each zone and the heart rate over the workout."),
 ])
-page("mi-band-instagram-story/", "en", "Mi Band and Amazfit workouts as Instagram stories (Mi Fitness, Zepp, Gadgetbridge)",
-     "Share Xiaomi Smart Band or Amazfit workouts from Mi Fitness, Zepp or Gadgetbridge as Instagram story stickers with time, heart rate and route. Free, offline Android app.", f"""
+page("mi-band-instagram-story/", "en", "Mi Band and Amazfit workouts as Instagram story stickers",
+     "Share Xiaomi Smart Band or Amazfit workouts from Mi Fitness, Zepp or Gadgetbridge as Instagram story stickers with time, heart rate and route.", f"""
 <article>
 <p class="kicker">XIAOMI · AMAZFIT</p>
 <h1>Mi Band and Amazfit workouts in your Instagram story</h1>
 <p class="lead">Mi Fitness and Zepp share a workout as a finished picture with their own layout. FitShare turns it into a sticker you style yourself. If you sync with Gadgetbridge instead, there is no share button at all; FitShare reads the FIT file.</p>
 <h2>From Mi Fitness or Zepp</h2>
 <p>Open the workout, tap <b>Share</b> and pick FitShare. It reads distance, time, average and max heart rate and calories off the picture. Zepp can also export a GPX for watches with GPS; share it afterwards and the route joins the sticker.</p>
+<p>On an iPhone, Mi Fitness and Zepp work the same way: save the share picture and open it in the <a href="../app/">web app</a>.</p>
 <h2>From Gadgetbridge</h2>
 <h2>Bands without GPS</h2>
 <p>Most Mi Bands measure heart rate but record no route. Two ways to still get a map on the sticker:</p>
@@ -308,7 +311,7 @@ apps_faq, apps_faq_schema = faq([
     ("Why is there no map?", "A share picture only gives FitShare numbers. The route, elevation profile and km splits need a GPX, TCX, KML, KMZ or FIT file. The table above shows where each app exports one."),
 ])
 page("fitness-app-instagram-sticker/", "en", "Share any fitness app workout as an Instagram story sticker",
-     "Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health, Strava: tap Share, pick FitShare, get a transparent story sticker. Plus where each app exports GPX.", f"""
+     "Mi Fitness, Garmin Connect, Zepp, Huawei Health, Strava: tap Share, pick FitShare, get a transparent story sticker. Plus where each app exports GPX.", f"""
 <article>
 <p class="kicker">ALL APPS</p>
 <h1>Any fitness app's workout as an Instagram story sticker</h1>
@@ -352,10 +355,40 @@ page("garmin-connect-instagram-story/", "en", "Garmin Connect workout as an Inst
 </article>
 """, [howto_schema("Share a Garmin Connect workout to Instagram stories", [s.replace("<b>", "").replace("</b>", "") for s in GARMIN_STEPS]), garmin_faq_schema])
 
+IOS_APPS_EN = "Garmin Connect, Mi Fitness, Zepp, Huawei Health, Strava, Polar Flow and COROS"
+IPHONE_STEPS = [
+    "In your fitness app, open the workout, tap <b>Share</b> and choose <b>Save Image</b>.",
+    "Open <b>brickystudios.github.io/FitShare/app</b> in Safari and pick the picture from Photos. FitShare reads distance, time, heart rate and calories off it.",
+    "For the map, also pick the workout's GPX or TCX from the Files app (Garmin Connect and Strava export it on their websites).",
+    "Choose a layout, the stats and a colour, tap <b>Share</b> and pick Instagram, or <b>Save Image</b>.",
+    "In Instagram, open a story, tap Stickers → Photo and pick the PNG.",
+]
+ios_faq, ios_faq_schema = faq([
+    ("Is FitShare in the App Store?", "No. The web app runs in Safari and needs no installation. Share → Add to Home Screen gives it an icon like an app."),
+    ("Why doesn't FitShare show up in the iPhone share sheet?", "iOS only lists App Store apps there. Saving the picture first takes one extra tap."),
+    ("Is my picture uploaded?", "No. Text recognition runs in Safari on your phone. The page loads about 8 MB of recognition data the first time and then works offline."),
+    ("Which apps work?", f"Any app that shares a picture of the workout, for example {IOS_APPS_EN}. Gadgetbridge and Samsung Health are Android-only."),
+])
+page("iphone-instagram-story-sticker/", "en", "Fitness stats sticker for Instagram stories on iPhone",
+     "Put Garmin Connect, Mi Fitness or Strava stats on your Instagram story from an iPhone. Free web app in Safari, nothing to install, nothing uploaded.", f"""
+<article>
+<p class="kicker">IPHONE · WEB APP</p>
+<h1>A stats sticker for your Instagram story, on iPhone</h1>
+<p class="lead">FitShare runs in Safari. Save the share picture from your fitness app, open it in the web app, and you get a transparent sticker with distance, time and heart rate. You don't need the App Store, an account or a subscription.</p>
+<p class="cta"><a class="btn" href="../app/">Open the web app</a></p>
+{steps_html(IPHONE_STEPS)}
+<h2>Works with</h2>
+<p>{IOS_APPS_EN}, and any other app whose Share button sends a picture. GPX, TCX, FIT, KML and KMZ files work too, for the route, elevation profile and km splits.</p>
+{gallery("../")}
+{ios_faq}
+</article>
+""", [howto_schema("Make an Instagram story stats sticker on iPhone", [re.sub(r"<[^>]+>", "", x) for x in IPHONE_STEPS]), ios_faq_schema],
+     {"en": "iphone-instagram-story-sticker/", "de": "de/iphone-instagram-story/"})
+
 # ------------------------------------------------------------------ German home
 
-DE_DESC = ("Trainings aus Mi Fitness, Garmin Connect, Gadgetbridge und anderen Fitness-Apps als Instagram-Story-Sticker "
-           "mit Distanz, Zeit, Route und Puls. Kostenlose Android-App, offline.")
+DE_DESC = ("Training aus Mi Fitness, Garmin Connect oder Strava als Instagram-Story-Sticker mit Distanz, Zeit, Route "
+           "und Puls. Kostenlos, als Android- oder Web-App.")
 DE_STEPS = [
     "In Gadgetbridge das Training öffnen, ⋮ → <b>Fit-Datei teilen</b>.",
     "Im Teilen-Menü <b>FitShare</b> wählen.",
@@ -371,7 +404,7 @@ de_faq, de_faq_schema = faq([
     ("Gibt es FitShare für das iPhone?", "Ja, als Web-App. <a href=\"../app/\">brickystudios.github.io/FitShare/app</a> in Safari öffnen, das gesicherte Teilen-Bild oder eine GPX-Datei wählen und den Sticker sichern. Über Teilen → Zum Home-Bildschirm liegt sie als Icon bereit. Im App Store ist sie nicht."),
     ("Verlassen meine Daten das Handy?", "Nein. Die Texterkennung läuft auf dem Handy, und die App hat keine Internet-Berechtigung."),
 ], "de")
-page("de/", "de", "FitShare: Training aus Mi Fitness, Garmin Connect & Co. als Instagram-Story-Sticker", DE_DESC, f"""
+page("de/", "de", "FitShare: Instagram-Story-Sticker für jede Fitness-App", DE_DESC, f"""
 <section class="hero">
 <p class="kicker">KOSTENLOSE ANDROID-APP · OPEN SOURCE</p>
 <h1>Dein Training.<br><span>Als Sticker.</span></h1>
@@ -383,6 +416,7 @@ page("de/", "de", "FitShare: Training aus Mi Fitness, Garmin Connect & Co. als I
 <h2>So kommt das Training in die Story</h2>
 {steps_html(APP_STEPS_DE)}
 <p><a href="fitness-app-instagram-story/">Welche App was schickt und wo die GPX steckt →</a></p>
+<p><a href="iphone-instagram-story/">Auf dem iPhone: so geht es mit der Web-App →</a></p>
 </section>
 <section>
 <h2>Mit Gadgetbridge</h2>
@@ -393,6 +427,7 @@ page("de/", "de", "FitShare: Training aus Mi Fitness, Garmin Connect & Co. als I
 <div><h3>Vier Overlay-Layouts</h3><p>Stapel, Reihe, Karte und Route. Bis zu vier Werte in deiner Reihenfolge, in Weiß, Schwarz oder Sportfarbe.</p></div>
 <div><h3>Kurven und Splits</h3><p>Höhenprofil, Pulskurve, Km-Splits mit dem schnellsten Kilometer, Pulszonen.</p></div>
 <div><h3>Eigene Looks</h3><p>Einstellungen unter einem Namen speichern. Die letzten acht Exporte bleiben im Verlauf, ein Tippen überträgt sie aufs nächste Training.</p></div>
+<div><h3>Auch iPhone und Rechner</h3><p>Die <a href="../app/">Web-App</a> kann dasselbe in Safari, Chrome oder Firefox, ohne Installation. Deine Dateien bleiben auf dem Gerät.</p></div>
 <div><h3>Kein Abo</h3><p>Höhenprofil, Splits und Pulszonen kosten nichts. In FitShare liegt nichts hinter einer Bezahlschranke.</p></div>
 <div><h3>Bleibt auf dem Handy</h3><p>Die Texterkennung läuft auf dem Handy. Kein Konto, keine Analyse, keine Internet-Berechtigung.</p></div>
 </section>
@@ -406,7 +441,7 @@ de_apps_faq, de_apps_faq_schema = faq([
     ("Warum fehlt die Karte?", "Aus einem Bild bekommt FitShare nur Zahlen. Route, Höhenprofil und Km-Splits brauchen eine GPX-, TCX-, KML-, KMZ- oder FIT-Datei. Die Tabelle zeigt, wo jede App eine exportiert."),
 ], "de")
 page("de/fitness-app-instagram-story/", "de", "Training aus jeder Fitness-App als Instagram-Story-Sticker",
-     "Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health, Strava: auf Teilen tippen, FitShare wählen, transparenten Story-Sticker bekommen. Dazu: wo jede App GPX exportiert.", f"""
+     "Mi Fitness, Garmin Connect, Zepp, Huawei Health, Strava: auf Teilen tippen, FitShare wählen, Story-Sticker bekommen. Dazu: wo jede App GPX exportiert.", f"""
 <article>
 <p class="kicker">ALLE APPS</p>
 <h1>Training aus jeder Fitness-App als Instagram-Story-Sticker</h1>
@@ -424,10 +459,37 @@ page("de/fitness-app-instagram-story/", "de", "Training aus jeder Fitness-App al
 """, [howto_schema("Fitness-App-Training als Instagram-Story-Sticker teilen", [s.replace("<b>", "").replace("</b>", "") for s in APP_STEPS_DE]), de_apps_faq_schema],
      {"en": "fitness-app-instagram-sticker/", "de": "de/fitness-app-instagram-story/"})
 
+IPHONE_STEPS_DE = [
+    "In der Fitness-App das Training öffnen, auf <b>Teilen</b> tippen und <b>Bild sichern</b> wählen.",
+    "<b>brickystudios.github.io/FitShare/app</b> in Safari öffnen und das Bild aus Fotos wählen. Distanz, Zeit, Puls und Kalorien liest FitShare vom Bild.",
+    "Für die Karte zusätzlich die GPX- oder TCX-Datei aus der Dateien-App wählen (Garmin Connect und Strava exportieren sie auf ihren Websites).",
+    "Layout, Werte und Farbe wählen, auf <b>Teilen</b> tippen und Instagram wählen, oder <b>Bild sichern</b>.",
+    "In Instagram eine Story öffnen, Sticker → Foto und das PNG wählen.",
+]
+de_ios_faq, de_ios_faq_schema = faq([
+    ("Gibt es FitShare im App Store?", "Nein. Die Web-App läuft in Safari ohne Installation. Über Teilen → Zum Home-Bildschirm bekommt sie ein Icon wie eine App."),
+    ("Warum steht FitShare nicht im Teilen-Menü des iPhones?", "iOS zeigt dort nur Apps aus dem App Store. Das Bild vorher zu sichern kostet einen Tipp mehr."),
+    ("Wird mein Bild hochgeladen?", "Nein. Die Texterkennung läuft in Safari auf dem Handy. Beim ersten Mal lädt die Seite etwa 8 MB Erkennungsdaten, danach geht sie auch offline."),
+    ("Welche Apps gehen?", "Jede App, die ein Bild vom Training teilt, etwa Garmin Connect, Mi Fitness, Zepp, Huawei Health, Strava, Polar Flow und COROS. Gadgetbridge und Samsung Health gibt es nur für Android."),
+], "de")
+page("de/iphone-instagram-story/", "de", "Trainings-Sticker für die Instagram-Story auf dem iPhone",
+     "Werte aus Garmin Connect, Mi Fitness oder Strava auf dem iPhone in die Instagram-Story bringen. Kostenlose Web-App in Safari, ohne Installation und Upload.", f"""
+<article>
+<p class="kicker">IPHONE · WEB-APP</p>
+<h1>Trainings-Sticker für die Instagram-Story, auf dem iPhone</h1>
+<p class="lead">FitShare läuft in Safari. Teilen-Bild aus der Fitness-App sichern, in der Web-App öffnen, und du hast einen transparenten Sticker mit Distanz, Zeit und Puls. App Store, Konto und Abo brauchst du nicht.</p>
+<p class="cta"><a class="btn" href="../../app/">Web-App öffnen</a></p>
+{steps_html(IPHONE_STEPS_DE)}
+{gallery("../../")}
+{de_ios_faq}
+</article>
+""", [howto_schema("Trainings-Sticker für die Instagram-Story auf dem iPhone", [re.sub(r"<[^>]+>", "", x) for x in IPHONE_STEPS_DE]), de_ios_faq_schema],
+     {"en": "iphone-instagram-story-sticker/", "de": "de/iphone-instagram-story/"})
+
 # ------------------------------------------------------------------ crawl files
 
-slugs = ["", "app/", "fitness-app-instagram-sticker/", "garmin-connect-instagram-story/", "gadgetbridge-instagram-story/",
-         "strava-sticker-alternative/", "mi-band-instagram-story/", "de/", "de/fitness-app-instagram-story/"]
+slugs = ["", "app/", "iphone-instagram-story-sticker/", "fitness-app-instagram-sticker/", "garmin-connect-instagram-story/", "gadgetbridge-instagram-story/",
+         "strava-sticker-alternative/", "mi-band-instagram-story/", "de/", "de/fitness-app-instagram-story/", "de/iphone-instagram-story/"]
 (DOCS / "sitemap.xml").write_text(
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     + "".join(f"  <url><loc>{BASE + s}</loc></url>\n" for s in slugs) + "</urlset>\n")

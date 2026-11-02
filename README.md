@@ -2,7 +2,7 @@
 
 <h1 align="center">FitShare: Instagram story stickers from Mi Fitness, Garmin Connect, Gadgetbridge and other fitness apps</h1>
 
-<p align="center"><strong>Android app that turns a workout into a transparent PNG for your Instagram story, similar to Strava's stats sticker. Tap Share in Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health or Strava, or hand it a Gadgetbridge FIT file. Works offline, no account, no subscription.</strong></p>
+<p align="center"><strong>Android app and web app that turn a workout into a transparent PNG for your Instagram story, similar to Strava's stats sticker. Tap Share in Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health or Strava, or hand it a GPX, TCX or Gadgetbridge FIT file. Works offline, no account, no subscription.</strong></p>
 
 <p align="center">
   <a href="https://kotlinlang.org/"><img alt="Made with Kotlin" src="https://img.shields.io/badge/made_with-Kotlin-0C0D0B?style=for-the-badge&logo=kotlin&logoColor=C6F432"></a>
@@ -75,6 +75,8 @@ The preview shows the overlay on your photo if you pick one. The saved PNG stays
 ## Install
 
 Android 8.0 or newer. [Download FitShare.apk](https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk) (always the latest version), or add `https://github.com/BrickyStudios/FitShare` to [Obtainium](https://github.com/ImranR98/Obtainium) to get updates.
+
+iPhone, desktop or no APK: use the [web app](https://brickystudios.github.io/FitShare/app/) in the browser, see [below](#web-app-iphone-desktop).
 
 ## Web app (iPhone, desktop)
 

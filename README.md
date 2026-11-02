@@ -7,7 +7,7 @@
   <br>
   <a href="#install"><img alt="Android 8.0 or newer" src="https://img.shields.io/badge/Android-8.0%2B-C6F432?logo=android&logoColor=C6F432&labelColor=0C0D0B"></a>
   <a href="https://developer.android.com/compose"><img alt="Jetpack Compose" src="https://img.shields.io/badge/UI-Jetpack_Compose-C6F432?logo=jetpackcompose&logoColor=C6F432&labelColor=0C0D0B"></a>
-  <a href="https://gadgetbridge.org/"><img alt="Reads Gadgetbridge JSON exports" src="https://img.shields.io/badge/Gadgetbridge-JSON_export-C6F432?labelColor=0C0D0B"></a>
+  <a href="https://gadgetbridge.org/"><img alt="Reads Gadgetbridge FIT and JSON exports" src="https://img.shields.io/badge/Gadgetbridge-FIT_%26_JSON-C6F432?labelColor=0C0D0B"></a>
   <a href="#what-it-does"><img alt="Routes from GPX, KML and KMZ" src="https://img.shields.io/badge/Routes-GPX_·_KML_·_KMZ-C6F432?labelColor=0C0D0B"></a>
   <a href="#what-it-does"><img alt="English and German" src="https://img.shields.io/badge/Languages-EN_·_DE-C6F432?labelColor=0C0D0B"></a>
   <a href="#what-it-does"><img alt="No tracking" src="https://img.shields.io/badge/Tracking-none-C6F432?labelColor=0C0D0B"></a>
@@ -47,14 +47,15 @@ Gadgetbridge records workouts from Mi Band, Amazfit and other watches without th
 | Stats | Any of distance, time, speed or pace, elevation gain, average and max heart rate, calories, steps, laps, SWOLF, strokes, stroke type. Tap order sets the order; "Auto" picks by sport |
 | Colour | White, black, or the sport's colour |
 | Extras | Route, elevation profile, heart rate zones, date, logo |
+| Looks | Save the current setup under a name and put it on the next workout with one tap. Every saved or shared PNG also lands in a history of the last eight setups. Long-press a saved look to delete it |
 
 The preview shows the overlay on your photo if you pick one. The saved PNG stays transparent.
 
 **Full stories (1080 × 1920).** Two finished designs, Night and Race bib, for when you want the image as the whole story.
 
-**Data.** Reads the Gadgetbridge workout JSON and routes as GPX, KML or KMZ (OpenTracks KMZ works as is). If the export lacks distance or time, FitShare computes them from the route, plus elevation gain. It guesses the sport from the speed; you can change it.
+**Data.** Reads Gadgetbridge workouts as FIT or JSON, and routes as GPX, KML or KMZ (OpenTracks KMZ works as is). A FIT file also contains the sport, the heart rate zones and, if the watch or phone recorded GPS, the route. If the export lacks distance or time, FitShare computes them from the route, plus elevation gain. Without a sport in the file it guesses from the speed; you can change it.
 
-**Everyday details.** Share the JSON and the route to FitShare one after the other, or pick both at once. If Android closes the app while you are in Instagram, your workout, photo and settings are still there when you come back. The app follows your phone's language (English or German), or set it per app in Android 13+.
+**Everyday details.** Share the workout and the route to FitShare one after the other, or pick both at once. If Android closes the app while you are in Instagram, your workout, photo and settings are still there when you come back. The app follows your phone's language (English or German), or set it per app in Android 13+.
 
 **Privacy.** No account, no network access, no analytics. Files stay on the phone.
 
@@ -64,8 +65,8 @@ Android 8.0 or newer. Download the APK from [Releases](https://github.com/Bricky
 
 ## How to use it
 
-1. In Gadgetbridge, open the workout and share or export it as JSON. If you recorded the route with OpenTracks, export it as KMZ or GPX.
-2. Open FitShare, tap **Choose files** and select both. Sharing them to FitShare from the other apps works too.
+1. In Gadgetbridge, open the workout, tap ⋮ → **Share FIT File** and pick FitShare. (Share JSON Details works too.)
+2. No GPS in the FIT? Share the route from OpenTracks as KMZ or GPX to FitShare as well, or tap **Choose files** and pick workout and route together.
 3. Check the sport, then pick layout, stats, colour and extras.
 4. Tap **Save PNG**. In Instagram, open a story, tap Stickers → Photo and pick the PNG.
 

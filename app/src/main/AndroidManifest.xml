@@ -23,12 +23,15 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Workout JSON from Gadgetbridge, routes from OpenTracks & co. -->
+            <!-- Workouts from Gadgetbridge (FIT is shared as octet-stream, details as JSON), routes from OpenTracks & co. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.SEND" />
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/vnd.ant.fit" />
+                <data android:mimeType="application/fit" />
                 <data android:mimeType="application/json" />
                 <data android:mimeType="application/gpx+xml" />
                 <data android:mimeType="application/vnd.google-earth.kml+xml" />

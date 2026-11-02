@@ -37,7 +37,10 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,6 +66,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.fitshare.data.Look
 import com.fitshare.data.Sport
 import com.fitshare.data.UiState
 import com.fitshare.data.Workout
@@ -95,7 +99,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
 
 private enum class Section(val de: String, val en: String) {
-    LAYOUT("Layout", "Layout"), STATS("Werte", "Stats"), COLOR("Farbe", "Colour"), EXTRAS("Extras", "Extras"), SPORT("Sport", "Sport");
+    LOOKS("Looks", "Looks"), LAYOUT("Layout", "Layout"), STATS("Werte", "Stats"), COLOR("Farbe", "Colour"), EXTRAS("Extras", "Extras"), SPORT("Sport", "Sport");
     val label get() = tr(de, en)
 }
 
@@ -125,7 +129,11 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
     LaunchedEffect(pager.settledPage) { prefs.edit().putInt("style", pager.settledPage).apply() }
     val style = StoryStyle.entries[pager.currentPage]
     var busy by remember { mutableStateOf(false) }
-    var section by remember { mutableStateOf(Section.LAYOUT) }
+    val looks by vm.looks.collectAsState()
+    // with saved looks, a new workout starts on them: one tap and it looks like last time
+    var section by remember { mutableStateOf(if (looks.presets.isNotEmpty() || looks.history.isNotEmpty()) Section.LOOKS else Section.LAYOUT) }
+    var naming by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<Look?>(null) }
 
     fun renderFull() = StoryRenderer.render(ctx, workout, style, background, overlay = overlay)
 
@@ -133,6 +141,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         busy = true
         val ok = ShareHelper.saveToGallery(ctx, withContext(Dispatchers.Default) { renderFull() })
         busy = false
+        if (ok && style == StoryStyle.OVERLAY) vm.rememberLook()
         Toast.makeText(
             ctx,
             if (ok) tr("Gespeichert in Bilder/FitShare", "Saved to Pictures/FitShare") else tr("Speichern hat nicht geklappt", "Saving failed"),
@@ -146,6 +155,19 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         if (uri != null) vm.setBackground(uri)
     }
     val routePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.open(it) }
+
+    if (naming) NameDialog(onDismiss = { naming = false }) { name ->
+        vm.savePreset(name); naming = false
+        Toast.makeText(ctx, tr("Look „$name“ gespeichert", "Saved look “$name”"), Toast.LENGTH_SHORT).show()
+    }
+    deleting?.let { look ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text(tr("„${look.name}“ löschen?", "Delete “${look.name}”?")) },
+            confirmButton = { TextButton({ vm.deletePreset(look); deleting = null }) { Text(tr("Löschen", "Delete")) } },
+            dismissButton = { TextButton({ deleting = null }) { Text(tr("Behalten", "Keep")) } }
+        )
+    }
 
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(vertical = 8.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -211,6 +233,19 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         AnimatedContent(activeSection, label = "controls") { sec ->
             ChipRow {
                 when (sec) {
+                    Section.LOOKS -> {
+                        Chip(tr("+ Speichern", "+ Save"), false, accent) { naming = true }
+                        looks.presets.forEach { look ->
+                            Chip(look.name.orEmpty(), overlay == look.options, accent, onLongClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS); deleting = look
+                            }) { vm.applyLook(look) }
+                        }
+                        looks.history.forEach { look ->
+                            Chip("↺ " + lookLabel(look), overlay == look.options, accent) { vm.applyLook(look) }
+                        }
+                        if (looks.presets.isEmpty() && looks.history.isEmpty()) Hint(tr("Gespeicherte PNGs landen hier im Verlauf", "Every saved PNG shows up here"))
+                        else if (looks.presets.isNotEmpty()) Hint(tr("Lange drücken löscht", "Long-press to delete"))
+                    }
                     Section.LAYOUT -> OverlayLayout.entries.forEach { l ->
                         Chip(l.label, overlay.layout == l, accent) { vm.updateOverlay { it.copy(layout = l) } }
                     }
@@ -287,6 +322,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                             try {
                                 val bmp = withContext(Dispatchers.Default) { renderFull() }
                                 ShareHelper.share(ctx, ShareHelper.cacheForSharing(ctx, bmp))
+                                if (style == StoryStyle.OVERLAY) vm.rememberLook()
                             } catch (e: Exception) {
                                 Toast.makeText(ctx, tr("Teilen fehlgeschlagen: ", "Sharing failed: ") + e.message, Toast.LENGTH_LONG).show()
                             } finally {
@@ -335,10 +371,10 @@ private fun TabRow(labels: List<String>, selectedIndex: Int, accent: Color, smal
                 Modifier
                     .pressable { onSelect(i) }
                     .heightIn(min = if (small) 36.dp else 44.dp)
-                    .padding(horizontal = if (small) 10.dp else 14.dp, vertical = 6.dp),
+                    .padding(horizontal = if (small) 6.dp else 14.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text.uppercase(), style = Type.label.copy(color = color, fontSize = if (small) Type.label.fontSize * 0.95f else Type.label.fontSize))
+                Text(text.uppercase(), style = Type.label.copy(color = color, fontSize = if (small) Type.label.fontSize * 0.95f else Type.label.fontSize), maxLines = 1, softWrap = false)
                 Spacer(Modifier.height(5.dp))
                 Box(Modifier.size(if (small) 4.dp else 5.dp).clip(CircleShape).background(if (selected) accent else Color.Transparent))
             }
@@ -354,6 +390,36 @@ private fun ChipRow(content: @Composable () -> Unit) {
     ) { content() }
 }
 
+private fun lookLabel(look: Look): String {
+    val day = java.time.Instant.ofEpochMilli(look.savedAt).atZone(java.time.ZoneId.systemDefault())
+    return "${look.options.layout.label} · ${look.options.ink.label} · " + java.time.format.DateTimeFormatter.ofPattern(tr("d.M.", "M/d")).format(day)
+}
+
+@Composable
+private fun Hint(text: String) {
+    Box(Modifier.heightIn(min = 44.dp), contentAlignment = Alignment.Center) {
+        Text(text, style = Type.body.copy(fontSize = Type.label.fontSize * 1.1f), maxLines = 1)
+    }
+}
+
+@Composable
+private fun NameDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(tr("Look speichern", "Save look")) },
+        text = {
+            OutlinedTextField(
+                name, { name = it.take(24) },
+                singleLine = true,
+                placeholder = { Text(tr("z. B. Gravel", "e.g. Gravel")) }
+            )
+        },
+        confirmButton = { TextButton({ onSave(name.trim()) }, enabled = name.isNotBlank()) { Text(tr("Speichern", "Save")) } },
+        dismissButton = { TextButton(onDismiss) { Text(tr("Abbrechen", "Cancel")) } }
+    )
+}
+
 @Composable
 private fun Chip(
     text: String,
@@ -361,13 +427,14 @@ private fun Chip(
     selectedColor: Color,
     dot: Color? = null,
     badge: String? = null,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     val bg by animateColorAsState(if (selected) selectedColor else Raised2, uiSpring(), label = "chip")
     val fg = if (selected) OnAccent else Bone
     Row(
         Modifier
-            .pressable(onClick = onClick)
+            .pressable(onLongClick = onLongClick, onClick = onClick)
             .clip(CircleShape)
             .background(bg)
             .heightIn(min = 44.dp)
@@ -393,7 +460,7 @@ private fun Chip(
 @Composable
 private fun TextAction(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
-        Modifier.pressable(enabled, onClick).heightIn(min = 44.dp).padding(horizontal = 10.dp),
+        Modifier.pressable(enabled, onClick = onClick).heightIn(min = 44.dp).padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(text, style = Type.button.copy(color = if (enabled) Bone else Muted))

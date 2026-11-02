@@ -55,13 +55,36 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         prefs.edit().putString("overlay", gson.toJson(_overlay.value)).apply()
     }
 
+    private fun loadOverlay(): OverlayOptions =
+        sanitize(runCatching { gson.fromJson(prefs.getString("overlay", null), OverlayOptions::class.java) }.getOrNull())
+            ?: OverlayOptions()
+
     // Gson skips Kotlin defaults: anything missing or unknown from an older version resets to the default
     @Suppress("SENSELESS_COMPARISON")
-    private fun loadOverlay(): OverlayOptions =
-        runCatching { gson.fromJson(prefs.getString("overlay", null), OverlayOptions::class.java) }.getOrNull()
-            ?.takeIf { it.layout != null && it.ink != null }
-            ?.let { o -> o.copy(stats = o.stats?.filterNotNull()) }
-            ?: OverlayOptions()
+    private fun sanitize(o: OverlayOptions?): OverlayOptions? =
+        o?.takeIf { it.layout != null && it.ink != null }?.let { it.copy(stats = it.stats?.filterNotNull()) }
+
+    private val _looks = MutableStateFlow(loadLooks())
+    /** Own presets and the setups of the last exports, to put on the next workout in one tap. */
+    val looks: StateFlow<Looks> = _looks.asStateFlow()
+
+    @Suppress("SENSELESS_COMPARISON")
+    private fun loadLooks(): Looks {
+        val raw = runCatching { gson.fromJson(prefs.getString("looks", null), Looks::class.java) }.getOrNull() ?: return Looks()
+        fun clean(list: List<Look>?) = list.orEmpty().filterNotNull().mapNotNull { l -> sanitize(l.options)?.let { l.copy(options = it) } }
+        return Looks(clean(raw.presets).filter { !it.name.isNullOrBlank() }, clean(raw.history))
+    }
+
+    private fun updateLooks(change: (Looks) -> Looks) {
+        _looks.update(change)
+        prefs.edit().putString("looks", gson.toJson(_looks.value)).apply()
+    }
+
+    /** Called after every overlay save/share. */
+    fun rememberLook() = updateLooks { it.copy(history = it.history.pushed(Look(options = _overlay.value, savedAt = System.currentTimeMillis()))) }
+    fun savePreset(name: String) = updateLooks { it.copy(presets = it.presets.withPreset(Look(name.trim(), _overlay.value, System.currentTimeMillis()))) }
+    fun deletePreset(look: Look) = updateLooks { it.copy(presets = it.presets - look) }
+    fun applyLook(look: Look) = updateOverlay { look.options }
 
     private class Session(val stats: WorkoutStats?, val route: Route?, val sport: Sport?, val background: String?)
 
@@ -91,7 +114,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         _state.value = UiState(stats = s.stats, route = route, sportOverride = s.sport, background = bg?.let(Uri::fromFile))
     }
 
-    /** Opens any mix of workout JSON and route files (GPX/KML/KMZ). Later files replace earlier ones of the same kind. */
+    /** Opens any mix of workout FIT/JSON and route files (GPX/KML/KMZ). Later files replace earlier ones of the same kind. */
     fun open(uris: List<Uri>) {
         if (uris.isEmpty()) return
         // one load at a time, in arrival order: a slow JSON must not overwrite a route that was shared after it
@@ -106,11 +129,16 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     try {
                         val bytes = readBytes(uri)
                         when {
+                            FitParser.looksLikeFit(bytes) -> {
+                                val fit = FitParser.parse(bytes)
+                                stats = fit.stats
+                                fit.route?.let { route = it }
+                            }
                             WorkoutParser.looksLikeJson(bytes) ->
                                 stats = WorkoutParser.parse(bytes.decodeToString(), name).getOrThrow()
                             RouteParser.looksLikeRoute(bytes) ->
                                 route = RouteParser.parse(bytes) ?: error(tr("Keine GPS-Punkte gefunden.", "No GPS points found."))
-                            else -> error(tr("Unbekanntes Format. Erwartet: JSON, GPX, KML oder KMZ.", "Unknown format. Expected JSON, GPX, KML or KMZ."))
+                            else -> error(tr("Unbekanntes Format. Erwartet: FIT, JSON, GPX, KML oder KMZ.", "Unknown format. Expected FIT, JSON, GPX, KML or KMZ."))
                         }
                     } catch (e: Exception) {
                         problems += "$name: ${e.message ?: tr("konnte nicht gelesen werden", "could not be read")}"
@@ -118,7 +146,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
             _state.update {
-                // A new JSON means a new workout: drop the old route, sport choice and photo.
+                // A new FIT/JSON means a new workout: drop the old route, sport choice and photo.
                 // A route on its own (e.g. shared later from OpenTracks) is added to the current workout.
                 val base = if (stats != null) UiState() else it
                 base.copy(

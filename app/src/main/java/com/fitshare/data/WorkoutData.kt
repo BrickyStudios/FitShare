@@ -29,7 +29,11 @@ data class WorkoutStats(
     val steps: Int = 0,
     val swimStyle: String? = null,
     /** Seconds in the five Gadgetbridge HR zones (warm-up … extreme), or empty. */
-    val hrZoneSeconds: List<Double> = emptyList()
+    val hrZoneSeconds: List<Double> = emptyList(),
+    /** Only FIT files say which sport it was; JSON leaves it null. */
+    val sport: Sport? = null,
+    /** Barometric climb from the watch (FIT); 0 if unknown. */
+    val elevationGainMeters: Double = 0.0
 ) {
     val hasSwimData: Boolean get() = laps > 0 || strokes > 0 || swolf > 0 || swimStyle != null
 }
@@ -64,14 +68,15 @@ fun mergeWorkout(stats: WorkoutStats?, route: Route?, sportOverride: Sport?): Wo
         startMillis = s.startMillis ?: route?.startMillis,
         activeSeconds = seconds,
         distanceMeters = distance,
-        elevationGainMeters = route?.elevationGainMeters ?: 0.0,
+        elevationGainMeters = s.elevationGainMeters.takeIf { it > 0 } ?: route?.elevationGainMeters ?: 0.0,
         stats = s,
         route = route
     )
 }
 
-/** Gadgetbridge doesn't export the sport, so infer it from what the file contains and the speed. */
+/** Gadgetbridge JSON doesn't export the sport, so infer it from what the file contains and the speed. */
 fun guessSport(s: WorkoutStats, distanceMeters: Double, seconds: Int): Sport {
+    s.sport?.let { return it }
     if (s.hasSwimData) return Sport.SWIMMING
     val kmh = if (distanceMeters > 0 && seconds > 0) distanceMeters / seconds * 3.6 else 0.0
     return when {

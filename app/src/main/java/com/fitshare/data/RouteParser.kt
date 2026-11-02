@@ -39,7 +39,7 @@ object RouteParser {
                 ?.let { zip.readBytes().decodeToString() }
         }
 
-    private class Pt(val lat: Double, val lon: Double, val ele: Double?, val time: Long?)
+    internal class Pt(val lat: Double, val lon: Double, val ele: Double?, val time: Long?)
 
     // OpenTracks writes empty <coord/> after some <when>; pairing by document order keeps them aligned.
     private val kmlTrackRegex = Regex("<(?:gx:)?Track>(.*?)</(?:gx:)?Track>", RegexOption.DOT_MATCHES_ALL)
@@ -102,7 +102,7 @@ object RouteParser {
         OffsetDateTime.parse(s.trim()).toInstant().toEpochMilli()
     } catch (e: Exception) { null }
 
-    private fun build(segments: List<List<Pt>>): Route? {
+    internal fun build(segments: List<List<Pt>>): Route? {
         if (segments.sumOf { it.size } < 2) return null
         var distance = 0.0
         var gain = 0.0

@@ -41,7 +41,7 @@ import com.fitshare.ui.theme.uiSpring
 import kotlinx.coroutines.delay
 
 private val PICK_TYPES = arrayOf(
-    "application/json", "application/gpx+xml", "application/vnd.google-earth.kml+xml",
+    "application/vnd.ant.fit", "application/json", "application/gpx+xml", "application/vnd.google-earth.kml+xml",
     "application/vnd.google-earth.kmz", "application/octet-stream", "application/xml", "text/xml", "*/*"
 )
 
@@ -76,8 +76,8 @@ fun ImportScreen(state: UiState, onOpen: (List<android.net.Uri>) -> Unit) {
             modifier = Modifier.reveal(2)
         )
         Spacer(Modifier.height(36.dp))
-        Step(3, "01", tr("Workout", "Workout"), tr("Gadgetbridge → Aktivität → Teilen. Die .json-Datei.", "Gadgetbridge → activity → share. The .json file."))
-        Step(4, "02", tr("Route", "Route"), tr("Optional: GPX, KML oder KMZ, zum Beispiel aus OpenTracks.", "Optional: GPX, KML or KMZ, for example from OpenTracks."))
+        Step(3, "01", tr("Workout", "Workout"), tr("Gadgetbridge → Aktivität → ⋮ → „Fit-Datei teilen“ → FitShare. JSON geht auch.", "Gadgetbridge → activity → ⋮ → “Share FIT File” → FitShare. JSON works too."))
+        Step(4, "02", tr("Route", "Route"), tr("Optional, falls die FIT keine GPS-Daten hat: GPX, KML oder KMZ, zum Beispiel aus OpenTracks.", "Optional, if the FIT has no GPS: GPX, KML or KMZ, for example from OpenTracks."))
         Step(5, "03", "PNG", tr("Overlay gestalten, speichern, in Instagram als Foto-Sticker einfügen.", "Style the overlay, save it, add it as a photo sticker in Instagram."))
         Box(Modifier.fillMaxWidth().height(1.dp).background(Hairline))
         Spacer(Modifier.height(40.dp))
@@ -97,7 +97,7 @@ fun ImportScreen(state: UiState, onOpen: (List<android.net.Uri>) -> Unit) {
         BigButton(tr("Dateien wählen", "Choose files"), Modifier.reveal(6), busy = state.loading) { picker.launch(PICK_TYPES) }
         Spacer(Modifier.height(12.dp))
         Text(
-            tr("JSON und Route gehen auch zusammen in einem Rutsch.", "You can pick the JSON and the route together."),
+            tr("Workout und Route gehen auch zusammen in einem Rutsch.", "You can pick the workout and the route together."),
             style = Type.body.copy(fontSize = Type.label.fontSize * 1.15f),
             modifier = Modifier.align(androidx.compose.ui.Alignment.CenterHorizontally).reveal(6)
         )

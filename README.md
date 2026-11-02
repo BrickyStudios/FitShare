@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/bilder/social-preview.png" width="860" alt="FitShare: your workout as an Instagram story sticker. Three example stories with route, distance, time and speed"></p>
+
 <h1 align="center">FitShare: Gadgetbridge workouts as Instagram story stickers</h1>
 
 <p align="center"><strong>Android app that turns a Gadgetbridge workout export and a GPS route into a transparent PNG for your Instagram story, similar to Strava's stats sticker. Works offline, no account.</strong></p>
@@ -20,7 +22,8 @@
   <a href="#install">Install</a> ·
   <a href="#how-to-use-it">How to use it</a> ·
   <a href="#build-it-yourself">Build it yourself</a> ·
-  <a href="https://github.com/BrickyStudios/FitShare/releases">Releases</a>
+  <a href="https://github.com/BrickyStudios/FitShare/releases">Releases</a> ·
+  <a href="https://brickystudios.github.io/FitShare/">Website</a>
 </p>
 
 Gadgetbridge records workouts from Mi Band, Amazfit and other watches without the vendor's cloud. It has no share button like Strava or Garmin Connect, and a Mi Band 10 export doesn't even contain the distance. FitShare reads the export, takes distance, elevation and the map from your GPX or KMZ route, and draws the image.

@@ -49,6 +49,9 @@ class ParsingTest {
 
     @Test fun rejectsUnrelatedJson() {
         assertTrue(WorkoutParser.parse("""{"foo":1}""").isFailure)
+        val broken = WorkoutParser.parse("""{"activeSeconds": """).exceptionOrNull()!!.message!!
+        assertTrue(broken, broken.startsWith("Die JSON-Datei ist unvollständig"))
+        assertTrue(WorkoutParser.parse("[1,2]").isFailure)
         assertNull(WorkoutParser.parseFilenameDate("export.json"))
     }
 

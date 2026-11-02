@@ -9,7 +9,7 @@ on:
       tag:
         description: 'Version tag (e.g. v1.2.0)'
         required: true
-        default: 'v1.2.0'
+        default: 'v1.2.1'
 
 permissions:
   contents: write # create the GitHub release
@@ -42,6 +42,7 @@ jobs:
 
       - name: Decode Keystore
         run: |
+          test -n "${{ secrets.KEYSTORE_BASE64 }}" || { echo "KEYSTORE_BASE64 secret missing"; exit 1; }
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.jks
 
       - name: Unit tests

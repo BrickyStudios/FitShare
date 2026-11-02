@@ -12,16 +12,19 @@ android {
         applicationId = "com.fitshare"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.2.1"
     }
 
+    // Release key lives only in CI secrets (and ~/.config/fitshare on the maintainer's machine).
+    // Without it, local release builds fall back to the debug key so they still install.
+    val storePass = System.getenv("SIGNING_STORE_PASSWORD")
     signingConfigs {
-        create("release") {
-            keyAlias = System.getenv("SIGNING_KEY_ALIAS") ?: "fitshare"
-            keyPassword = System.getenv("SIGNING_KEY_PASSWORD") ?: "fitshare123"
-            storeFile = file("release.jks")
-            storePassword = System.getenv("SIGNING_STORE_PASSWORD") ?: "fitshare123"
+        if (storePass != null) create("release") {
+            storeFile = file(System.getenv("SIGNING_STORE_FILE") ?: "release.jks")
+            storePassword = storePass
+            keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+            keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
         }
     }
 
@@ -32,7 +35,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {

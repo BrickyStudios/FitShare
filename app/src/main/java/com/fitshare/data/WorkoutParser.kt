@@ -13,7 +13,11 @@ object WorkoutParser {
         bytes.firstOrNull { !it.toInt().toChar().isWhitespace() }?.toInt()?.toChar() == '{'
 
     fun parse(jsonString: String, filename: String = ""): Result<WorkoutStats> = runCatching {
-        val root = JsonParser.parseString(jsonString).asJsonObject
+        val root = try {
+            JsonParser.parseString(jsonString).asJsonObject
+        } catch (e: RuntimeException) { // JsonParseException, IllegalStateException for arrays/primitives
+            throw IllegalArgumentException("Die JSON-Datei ist unvollständig oder beschädigt. Bitte neu aus Gadgetbridge exportieren.")
+        }
         val known = listOf("activeSeconds", "distanceMeters", "active_calories", "averageHR", "laps", "steps")
         require(known.any { root.has(it) }) { "Das sieht nicht nach einem Gadgetbridge-Workout aus." }
 

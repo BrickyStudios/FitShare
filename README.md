@@ -1,6 +1,6 @@
 <h1 align="center">FitShare – Gadgetbridge-Workouts als Instagram-Story</h1>
 
-<p align="center"><strong>Android-App, die aus deinem Gadgetbridge-Export und deiner GPS-Route eine fertige Instagram-Story (1080 × 1920) macht. Offline, ohne Konto.</strong></p>
+<p align="center"><strong>Android-App, die aus deinem Gadgetbridge-Export und deiner GPS-Route eine fertige Instagram-Story (1080 × 1920) macht: als transparentes PNG im Strava-Stil zum Einfügen in deine Story, oder als fertiges Bild. Offline, ohne Konto.</strong></p>
 
 <p align="center">
   <a href="https://kotlinlang.org/"><img alt="Gebaut mit Kotlin" src="https://img.shields.io/badge/gebaut_mit-Kotlin-0C0D0B?style=for-the-badge&logo=kotlin&logoColor=C6F432"></a>
@@ -24,16 +24,17 @@
 Gadgetbridge zeichnet Workouts von Mi Band, Amazfit und anderen Uhren ohne Hersteller-Cloud auf. Einen Teilen-Knopf wie bei Mi Fitness, Strava oder Garmin Connect hat es aber nicht. FitShare schließt die Lücke: Workout-JSON rein, Route dazu, Story teilen.
 
 <p align="center">
+  <img src="docs/bilder/0-overlay.png" width="240" alt="FitShare Overlay: transparentes PNG mit Distanz, Zeit, Tempo und GPS-Route, als Sticker über ein eigenes Foto in der Instagram-Story gelegt">
   <img src="docs/bilder/1-nacht.png" width="240" alt="FitShare Instagram-Story im Stil Nacht: Radfahren 64,15 km mit leuchtender GPS-Route, Pulszonen, Tempo und Höhenmetern">
   <img src="docs/bilder/2-startnummer.png" width="240" alt="FitShare Instagram-Story im Stil Startnummer: Papier-Look mit orangem Kopfbalken, Route und Trainingswerten">
-  <img src="docs/bilder/3-sticker.png" width="240" alt="FitShare Sticker-Stil: transparentes PNG mit Workout-Werten über einem eigenen Foto">
 </p>
 
 <p align="center"><sub>Die Bilder zeigen eine erfundene Demo-Runde, keine echte Strecke.</sub></p>
 
 ## Funktionen
 
-- 🎟️ **Drei Stile zum Durchwischen**: *Nacht* (dunkel, leuchtende Route), *Startnummer* (Papier mit Farbbalken wie eine Startnummer) und *Sticker* (transparentes PNG zum Drüberlegen in Instagram).
+- 🪄 **Overlay wie bei Strava**: Distanz, Zeit und Tempo untereinander, die Route darunter, transparenter Hintergrund, eng zugeschnitten. In Instagram als Foto-Sticker über dein eigenes Bild legen. Schrift weiß oder schwarz, je nach Foto.
+- 🎟️ **Oder fertige Story-Bilder**: *Nacht* (dunkel, leuchtende Route) und *Startnummer* (Papier mit Farbbalken wie eine Startnummer), beide 1080 × 1920.
 - 🗺️ **Route aus GPX, KML oder KMZ**: OpenTracks-Exporte funktionieren direkt. Fehlt im Gadgetbridge-Export die Distanz (beim Mi Band 10 üblich), rechnet FitShare sie aus der Route, dazu die Höhenmeter.
 - 🚴 **Sportart erkannt oder gewählt**: Radfahren, Laufen, Schwimmen, Wandern oder Training. Jede Sportart hat eigene Kennzahlen und eine eigene Farbe.
 - ❤️ **Pulszonen**: Die fünf Gadgetbridge-Zonen erscheinen als Balken.
@@ -50,8 +51,8 @@ Android 8.0 oder neuer. APKs baut der Workflow [Build & Release APK](.github/wor
 
 1. In Gadgetbridge die Aktivität öffnen und als JSON teilen oder exportieren. Optional die Route aus OpenTracks als KMZ oder GPX.
 2. In FitShare **Dateien wählen** und beide auf einmal markieren. Alternativ beide nacheinander an FitShare teilen.
-3. Stil wischen, Sportart antippen, Foto drunterlegen.
-4. **In Story teilen** tippen und Instagram auswählen.
+3. Sportart prüfen, beim Overlay weiße oder schwarze Schrift wählen.
+4. **PNG speichern** tippen. In Instagram: Story öffnen → Sticker → Foto → das PNG wählen. Die fertigen Story-Bilder (Nacht, Startnummer) gehen auch direkt über **Teilen**.
 
 <p align="center">
   <img src="docs/bilder/app-start.png" width="240" alt="FitShare Startbildschirm: Dateien aus Gadgetbridge und OpenTracks wählen">

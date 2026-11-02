@@ -34,9 +34,9 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 
 enum class StoryStyle(val label: String) {
+    OVERLAY("Overlay"),
     NIGHT("Nacht"),
-    BIB("Startnummer"),
-    STICKER("Sticker")
+    BIB("Startnummer")
 }
 
 /**
@@ -64,8 +64,10 @@ object StoryRenderer {
         workout: Workout,
         style: StoryStyle,
         background: Bitmap?,
-        scale: Float = 1f
+        scale: Float = 1f,
+        darkInk: Boolean = false
     ): Bitmap {
+        if (style == StoryStyle.OVERLAY) return renderOverlay(context, workout, darkInk, scale)
         val bmp = Bitmap.createBitmap((W * scale).roundToInt(), (H * scale).roundToInt(), Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         c.scale(scale, scale)
@@ -73,11 +75,81 @@ object StoryRenderer {
         val pal = when (style) {
             StoryStyle.NIGHT -> Palette(BONE, alpha(BONE, 0.58f), alpha(BONE, 0.16f), accent, false)
             StoryStyle.BIB -> Palette(INK, alpha(INK, 0.6f), alpha(INK, 0.2f), INK, false)
-            StoryStyle.STICKER -> Palette(Color.WHITE, alpha(Color.WHITE, 0.85f), alpha(Color.WHITE, 0.45f), accent, true)
+            StoryStyle.OVERLAY -> error("drawn by renderOverlay")
         }
         drawBackground(c, style, accent, background)
         drawContent(c, context, workout, style, pal)
         return bmp
+    }
+
+    // ---------------------------------------------------------------- overlay
+
+    /**
+     * Transparent PNG cropped to its content: up to three stats stacked and centred, the route
+     * below, a small wordmark. Meant to be added as a photo sticker on top of your own Instagram story.
+     */
+    fun renderOverlay(context: Context, workout: Workout, darkInk: Boolean, scale: Float = 1f): Bitmap {
+        val ink = if (darkInk) INK else Color.WHITE
+        val shade = if (darkInk) 0x55FFFFFF else 0x66000000
+        fun paint(tf: Typeface, size: Float, color: Int, tracking: Float = 0f) =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                typeface = tf; textSize = size; this.color = color; letterSpacing = tracking
+                textAlign = Paint.Align.CENTER
+                setShadowLayer(10f, 0f, 2f, shade)
+            }
+        val content = workout.storyContent()
+        val stats = (listOf(content.hero) + content.cells).distinct().take(3)
+        val label = paint(Fonts.text(context, 700), 34f, alpha(ink, 0.85f), 0.16f)
+        val value = paint(Fonts.display(context, 800), 150f, ink, -0.01f)
+        val unit = paint(Fonts.display(context, 700), 70f, ink, 0.02f)
+        val brand = paint(Fonts.text(context, 800), 28f, alpha(ink, 0.85f), 0.34f)
+
+        val route = workout.route
+        val routeSize = route?.let { fitRouteBox(it, 760f, 560f) }
+        val pad = 40f
+        val statH = 44f + 150f * 0.78f + 64f
+        val height = pad + stats.size * statH + (routeSize?.let { it.second + 40f } ?: 0f) + 60f + pad
+
+        val bmp = Bitmap.createBitmap((W * scale).roundToInt(), (height * scale).roundToInt(), Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.scale(scale, scale)
+        val cx = W / 2
+        var y = pad
+        for (st in stats) {
+            c.drawText(st.label.uppercase(Locale.GERMAN), cx, y + 34f, label)
+            fitWidth(value, st.value, W - 160f - if (st.unit.isEmpty()) 0f else unit.measureText(st.unit) + 16f)
+            val base = y + 44f + value.textSize * 0.78f
+            if (st.unit.isEmpty()) c.drawText(st.value, cx, base, value)
+            else {
+                // centre value + unit as one group
+                val vw = value.measureText(st.value); val uw = unit.measureText(st.unit) + 16f
+                val left = cx - (vw + uw) / 2
+                c.drawText(st.value, left + vw / 2, base, value)
+                c.drawText(st.unit, left + vw + uw / 2 + 8f, base, unit)
+            }
+            y += statH
+            value.textSize = 150f
+        }
+        if (route != null && routeSize != null) {
+            val (rw, rh) = routeSize
+            val box = RectF(cx - rw / 2, y, cx + rw / 2, y + rh)
+            drawRoute(c, route, box, StoryStyle.OVERLAY, Palette(ink, ink, ink, ink, true), ink)
+            y += rh + 40f
+        }
+        c.drawText("FITSHARE", cx + 5f, y + 34f, brand) // +5: letter-spacing trails the last glyph
+        return bmp
+    }
+
+    /** Size of the box the route needs inside maxW × maxH, keeping its real proportions. */
+    private fun fitRouteBox(route: Route, maxW: Float, maxH: Float): Pair<Float, Float>? {
+        val all = route.segments.flatten()
+        val minLat = all.minOf { it.lat }; val maxLat = all.maxOf { it.lat }
+        val kx = cos(Math.toRadians((minLat + maxLat) / 2))
+        val spanX = (all.maxOf { it.lon } - all.minOf { it.lon }) * kx
+        val spanY = maxLat - minLat
+        if (spanX < 1e-7 && spanY < 1e-7) return null
+        val s = minOf(maxW / spanX.coerceAtLeast(1e-9), maxH / spanY.coerceAtLeast(1e-9))
+        return Pair(max(60f, (spanX * s).toFloat()), max(60f, (spanY * s).toFloat()))
     }
 
     // ---------------------------------------------------------------- background
@@ -113,7 +185,7 @@ object StoryRenderer {
                 }
                 grain(c, INK, 0.05f)
             }
-            StoryStyle.STICKER -> Unit // transparent PNG, to lay over your own photo in Instagram
+            StoryStyle.OVERLAY -> Unit
         }
     }
 
@@ -304,6 +376,11 @@ object StoryRenderer {
 
         val start = all.first(); val end = all.last()
         val dot = Paint(Paint.ANTI_ALIAS_FLAG)
+        if (style == StoryStyle.OVERLAY) { // transparent canvas: hollow start ring, solid end dot
+            c.drawCircle(px(start), py(start), 14f, dot.apply { color = pal.fg; setStyle(Paint.Style.STROKE); strokeWidth = 6f })
+            c.drawCircle(px(end), py(end), 16f, dot.apply { color = pal.fg; setStyle(Paint.Style.FILL) })
+            return
+        }
         c.drawCircle(px(start), py(start), 17f, dot.apply { color = pal.fg; setStyle(Paint.Style.FILL) })
         c.drawCircle(px(start), py(start), 9f, dot.apply { color = if (style == StoryStyle.BIB) PAPER else NIGHT })
         c.drawCircle(px(end), py(end), 19f, dot.apply { color = accent })

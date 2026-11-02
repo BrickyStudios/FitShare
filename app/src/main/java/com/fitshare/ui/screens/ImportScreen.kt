@@ -77,7 +77,7 @@ fun ImportScreen(state: UiState, onOpen: (List<android.net.Uri>) -> Unit) {
         Spacer(Modifier.height(36.dp))
         Step(3, "01", "Workout", "Gadgetbridge → Aktivität → Teilen. Die .json-Datei.")
         Step(4, "02", "Route", "Optional: GPX, KML oder KMZ, zum Beispiel aus OpenTracks.")
-        Step(5, "03", "Stil", "Wischen, Sportart wählen, Foto drunter, teilen.")
+        Step(5, "03", "PNG", "Overlay speichern und in Instagram als Foto-Sticker einfügen.")
         Box(Modifier.fillMaxWidth().height(1.dp).background(Hairline))
         Spacer(Modifier.height(40.dp))
 

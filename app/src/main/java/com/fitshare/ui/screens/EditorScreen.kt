@@ -10,6 +10,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
@@ -54,6 +55,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
@@ -109,8 +111,10 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
     LaunchedEffect(pager.settledPage) { prefs.edit().putInt("style", pager.settledPage).apply() }
     val style = StoryStyle.entries[pager.currentPage]
     var busy by remember { mutableStateOf(false) }
+    var darkInk by remember { mutableStateOf(prefs.getBoolean("darkInk", false)) }
+    LaunchedEffect(darkInk) { prefs.edit().putBoolean("darkInk", darkInk).apply() }
 
-    fun renderFull() = StoryRenderer.render(ctx, workout, style, background)
+    fun renderFull() = StoryRenderer.render(ctx, workout, style, background, darkInk = darkInk)
 
     fun save() = scope.launch {
         busy = true
@@ -134,11 +138,6 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             TextAction("‹  Neu") { vm.reset() }
-            TextAction("Speichern", enabled = !busy) {
-                val needsPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
-                    ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-                if (needsPermission) storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) else save()
-            }
         }
 
         // story pages: swipe between styles; neighbours peek in, scaled back
@@ -149,9 +148,10 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 8.dp)
         ) { page ->
             val pageStyle = StoryStyle.entries[page]
-            val preview by produceState<Bitmap?>(null, workout, pageStyle, background) {
-                value = withContext(Dispatchers.Default) { StoryRenderer.render(ctx, workout, pageStyle, background, 0.5f) }
+            val preview by produceState<Bitmap?>(null, workout, pageStyle, background, darkInk) {
+                value = withContext(Dispatchers.Default) { StoryRenderer.render(ctx, workout, pageStyle, background, 0.5f, darkInk) }
             }
+            val overlay = pageStyle == StoryStyle.OVERLAY
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Box(
                     Modifier
@@ -164,11 +164,20 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                             alpha = 1f - 0.45f * off
                         }
                         .clip(RoundedCornerShape(22.dp))
-                        .then(if (pageStyle == StoryStyle.STICKER) Modifier.checkerboard() else Modifier.background(Raised))
-                        .semantics { contentDescription = "Vorschau Stil ${pageStyle.label}" }
+                        .then(if (overlay) Modifier.checkerboard(light = darkInk) else Modifier.background(Raised))
+                        .semantics { contentDescription = "Vorschau Stil ${pageStyle.label}" },
+                    contentAlignment = Alignment.Center
                 ) {
+                    // the overlay is previewed on your photo if you picked one; the PNG itself stays transparent
+                    if (overlay && background != null) {
+                        Image(background!!.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    }
                     Crossfade(preview, label = "preview") { bmp ->
-                        if (bmp != null) Image(bmp.asImageBitmap(), null, Modifier.fillMaxSize())
+                        if (bmp != null) Image(
+                            bmp.asImageBitmap(), null,
+                            Modifier.fillMaxSize().padding(if (overlay) 18.dp else 0.dp),
+                            contentScale = ContentScale.Fit
+                        )
                     }
                 }
             }
@@ -190,6 +199,14 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                     Spacer(Modifier.height(6.dp))
                     Box(Modifier.size(5.dp).clip(CircleShape).background(if (selected) accent else Color.Transparent))
                 }
+            }
+        }
+
+        AnimatedVisibility(style == StoryStyle.OVERLAY) {
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center) {
+                InkOption("Weiße Schrift", selected = !darkInk) { darkInk = false }
+                Spacer(Modifier.width(8.dp))
+                InkOption("Schwarze Schrift", selected = darkInk) { darkInk = true }
             }
         }
 
@@ -252,27 +269,56 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
 
         Spacer(Modifier.height(12.dp))
 
-        BigButton(
-            "In Story teilen",
-            Modifier.padding(horizontal = 20.dp),
-            color = accent,
-            busy = busy
-        ) {
-            view.performHapticFeedback(
-                if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
-            )
-            scope.launch {
-                busy = true
-                try {
-                    val bmp = withContext(Dispatchers.Default) { renderFull() }
-                    ShareHelper.share(ctx, ShareHelper.cacheForSharing(ctx, bmp))
-                } catch (e: Exception) {
-                    Toast.makeText(ctx, "Teilen fehlgeschlagen: ${e.message}", Toast.LENGTH_LONG).show()
-                } finally {
-                    busy = false
-                }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                Modifier
+                    .weight(0.38f)
+                    .pressable(enabled = !busy) {
+                        scope.launch {
+                            busy = true
+                            try {
+                                val bmp = withContext(Dispatchers.Default) { renderFull() }
+                                ShareHelper.share(ctx, ShareHelper.cacheForSharing(ctx, bmp))
+                            } catch (e: Exception) {
+                                Toast.makeText(ctx, "Teilen fehlgeschlagen: ${e.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                busy = false
+                            }
+                        }
+                    }
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Raised2)
+                    .heightIn(min = 60.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Teilen", style = Type.button.copy(color = Bone))
+            }
+            BigButton("PNG speichern", Modifier.weight(0.62f), color = accent, busy = busy) {
+                view.performHapticFeedback(
+                    if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
+                )
+                val needsPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+                    ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                if (needsPermission) storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE) else save()
             }
         }
+        Text(
+            if (style == StoryStyle.OVERLAY) "Instagram: Story öffnen → Sticker → Foto → PNG wählen"
+            else "Fertige Story 1080 × 1920, als Hintergrund in Instagram",
+            style = Type.body.copy(fontSize = Type.label.fontSize * 1.1f),
+            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
+        )
+    }
+}
+
+@Composable
+private fun InkOption(text: String, selected: Boolean, onClick: () -> Unit) {
+    val bg by animateColorAsState(if (selected) Bone else Raised2, uiSpring(), label = "ink")
+    Box(
+        Modifier.pressable(onClick = onClick).clip(CircleShape).background(bg).heightIn(min = 36.dp).padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, style = Type.label.copy(color = if (selected) OnAccent else Bone))
     }
 }
 
@@ -324,13 +370,13 @@ private fun ToolTile(
 }
 
 /** Grey checkerboard behind the transparent sticker preview, like any image editor. */
-private fun Modifier.checkerboard() = drawBehind {
+private fun Modifier.checkerboard(light: Boolean) = drawBehind {
     val tile = 12.dp.toPx()
-    drawRect(Color(0xFF2A2B27))
+    drawRect(if (light) Color(0xFFE9E6DE) else Color(0xFF2A2B27))
     var y = 0f; var row = 0
     while (y < size.height) {
         var x = if (row % 2 == 0) 0f else tile
-        while (x < size.width) { drawRect(Color(0xFF353631), Offset(x, y), Size(tile, tile)); x += tile * 2 }
+        while (x < size.width) { drawRect(if (light) Color(0xFFD9D5CB) else Color(0xFF353631), Offset(x, y), Size(tile, tile)); x += tile * 2 }
         y += tile; row++
     }
 }

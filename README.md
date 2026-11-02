@@ -21,10 +21,12 @@
 
 <p align="center">
   <a href="https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk"><img alt="Download FitShare.apk" src="https://img.shields.io/badge/Download-FitShare.apk-C6F432?style=for-the-badge&logo=android&logoColor=0C0D0B&labelColor=C6F432&color=0C0D0B"></a>
+  <a href="https://brickystudios.github.io/FitShare/app/"><img alt="Open the web app for iPhone and desktop" src="https://img.shields.io/badge/Open-Web_app-0C0D0B?style=for-the-badge&logo=safari&logoColor=C6F432&labelColor=0C0D0B&color=22231F"></a>
 </p>
 
 <p align="center">
   <a href="#install">Install</a> ·
+  <a href="#web-app-iphone-desktop">Web app</a> ·
   <a href="#how-to-use-it">How to use it</a> ·
   <a href="#which-apps-work">Which apps work</a> ·
   <a href="#build-it-yourself">Build it yourself</a> ·
@@ -73,6 +75,16 @@ The preview shows the overlay on your photo if you pick one. The saved PNG stays
 ## Install
 
 Android 8.0 or newer. [Download FitShare.apk](https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk) (always the latest version), or add `https://github.com/BrickyStudios/FitShare` to [Obtainium](https://github.com/ImranR98/Obtainium) to get updates.
+
+## Web app (iPhone, desktop)
+
+No Android, or you'd rather not install an APK? [brickystudios.github.io/FitShare/app](https://brickystudios.github.io/FitShare/app/) does the same in the browser: share pictures, GPX, TCX, FIT, KML, KMZ and Gadgetbridge JSON in, the same overlay layouts, Night and Race bib designs, looks and PNG export out.
+
+- **iPhone:** in the fitness app, tap Share → Save Image, then pick the picture in the web app. Share → Add to Home Screen keeps it as an icon.
+- **Android:** after "Install app" in Chrome, the web app shows up in the share sheet like the APK does.
+- **Privacy:** text recognition ([Tesseract.js](https://github.com/naptha/tesseract.js), self-hosted in `docs/app/vendor`) runs in the browser. No uploads, no analytics, no third-party requests. The first picture loads about 8 MB of recognition data once.
+
+The code is plain JavaScript in `docs/app`, a port of the Kotlin parser and renderer. `node --test tools/webapp_test.mjs` runs its tests.
 
 ## How to use it
 

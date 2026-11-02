@@ -5,11 +5,13 @@ One home page per language plus one page per search intent. Run: python3 tools/b
 """
 import html
 import json
+import re
 from pathlib import Path
 
 BASE = "https://brickystudios.github.io/FitShare/"
 REPO = "https://github.com/BrickyStudios/FitShare"
 APK = REPO + "/releases/latest/download/FitShare.apk"  # direct download, same name in every release
+WEBAPP = BASE + "app/"  # static web app in docs/app, not generated here
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 IMG = BASE + "bilder/social-preview.png"
 
@@ -21,8 +23,8 @@ def page(slug, lang, title, desc, body, schema, alternates=None):
     alt = "".join(f'<link rel="alternate" hreflang="{l}" href="{BASE + s}">' for l, s in (alternates or {}).items())
     nav_de = lang == "de"
     nav = (
-        f'<a href="{root}de/fitness-app-instagram-story/">Apps</a><a href="{REPO}">GitHub</a>' if nav_de else
-        f'<a href="{root}fitness-app-instagram-sticker/">Apps</a><a href="{root}de/">Deutsch</a><a href="{REPO}">GitHub</a>'
+        f'<a href="{root}app/">Web-App</a><a href="{root}de/fitness-app-instagram-story/">Apps</a><a href="{REPO}">GitHub</a>' if nav_de else
+        f'<a href="{root}app/">Web app</a><a href="{root}fitness-app-instagram-sticker/">Apps</a><a href="{root}de/">Deutsch</a><a href="{REPO}">GitHub</a>'
     )
     foot = (
         "FitShare ist freie Software unter GPL-3.0. Kein Projekt von Gadgetbridge, Xiaomi, Garmin, Strava, Instagram oder Meta."
@@ -77,7 +79,7 @@ def app_schema(lang, desc):
 def howto_schema(name, steps):
     return {
         "@context": "https://schema.org", "@type": "HowTo", "name": name,
-        "step": [{"@type": "HowToStep", "position": i + 1, "text": s} for i, s in enumerate(steps)],
+        "step": [{"@type": "HowToStep", "position": i + 1, "text": re.sub(r"<[^>]+>", "", s)} for i, s in enumerate(steps)],
     }
 
 
@@ -99,11 +101,13 @@ def steps_html(steps):
 def cta(lang="en"):
     if lang == "de":
         return (f'<p class="cta"><a class="btn" href="{APK}">APK herunterladen</a>'
-                f'<a class="btn ghost" href="{REPO}">Auf GitHub ansehen</a></p>'
-                '<p class="small">Android 8.0 oder neuer. Kostenlos, ohne Konto, ohne Internetzugriff. Updates bequem über Obtainium.</p>')
+                f'<a class="btn ghost" href="{WEBAPP}">Im Browser öffnen</a></p>'
+                '<p class="small">Die APK braucht Android 8.0 oder neuer, ohne Konto und ohne Internetzugriff. '
+                'Die Web-App läuft auf iPhone, Android und am Rechner, ohne Installation; Bilder und Dateien verlassen das Gerät nicht.</p>')
     return (f'<p class="cta"><a class="btn" href="{APK}">Download the APK</a>'
-            f'<a class="btn ghost" href="{REPO}">View on GitHub</a></p>'
-            '<p class="small">Android 8.0 or newer. Free, no account, no internet permission. Get updates through Obtainium.</p>')
+            f'<a class="btn ghost" href="{WEBAPP}">Open in the browser</a></p>'
+            '<p class="small">The APK needs Android 8.0 or newer, no account, no internet permission. '
+            'The web app runs on iPhone, Android and desktop with nothing to install; pictures and files never leave the device.</p>')
 
 
 def gallery(root):
@@ -179,7 +183,7 @@ home_faq, home_faq_schema = faq([
     ("Which apps work?", "Any app whose Share button sends a picture of the workout: Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health, Strava, Polar Flow, COROS and others. Gadgetbridge exports and GPX or TCX files work too. FitShare reads Latin script, so the app can be set to English, German, French, Spanish and similar languages."),
     ("Do I get the map from the share picture?", "No, only the numbers. For the route, the elevation profile and the km splits, also share the workout's GPX or TCX file. <a href=\"fitness-app-instagram-sticker/\">Where each app hides its export</a>."),
     ("Do I need a subscription?", "No. FitShare is free, and so is every layout and graph in it. You don't need Strava, Garmin Connect+ or any other paid plan."),
-    ("Is there an iPhone version?", "No. FitShare is Android-only (Android 8.0 or newer)."),
+    ("Is there an iPhone version?", "Yes, as a web app. Open <a href=\"app/\">brickystudios.github.io/FitShare/app</a> in Safari, pick the saved share picture or a GPX file, and save the sticker. Tap Share → Add to Home Screen to keep it as an icon. It isn't in the App Store."),
     ("Is it on Google Play?", "Not yet. Install the APK from GitHub Releases, or add the repository to Obtainium for automatic updates."),
     ("Does my data leave the phone?", "No. Text recognition runs on the phone, and the app has no internet permission, so it cannot upload anything."),
 ])
@@ -313,6 +317,8 @@ page("fitness-app-instagram-sticker/", "en", "Share any fitness app workout as a
 <h2>Which app sends what</h2>
 {apps_table(APPS_EN)}
 <p class="small">Menu names change between app versions. If FitShare is missing from the share sheet, update it to 1.7.0 or newer.</p>
+<h2>On an iPhone or without the APK</h2>
+<p>Tap Share in the fitness app and save the picture, then open it in the <a href="../app/">FitShare web app</a>. The same works with GPX, TCX, FIT, KML and KMZ files. Text recognition runs in the browser, nothing is uploaded.</p>
 {cta()}
 {apps_faq}
 <p class="small">Mi Fitness, Zepp, Garmin Connect, Huawei Health, Samsung Health, Strava, Polar Flow and COROS are trademarks of their owners. FitShare is an independent project.</p>
@@ -321,7 +327,7 @@ page("fitness-app-instagram-sticker/", "en", "Share any fitness app workout as a
      {"en": "fitness-app-instagram-sticker/", "de": "de/fitness-app-instagram-story/"})
 
 GARMIN_STEPS = [
-    "In Garmin Connect, open the activity and tap the <b>share</b> icon. If Garmin offers several options, pick the one that shares a picture.",
+    "In Garmin Connect, open the activity and tap the <b>share</b> icon. If Garmin offers several options, pick the one that shares a picture. On an iPhone, save the picture and open it in the <a href=\"../app/\">web app</a>.",
     "Pick <b>FitShare</b>. It reads distance, time, pace or speed, heart rate, elevation and calories off the picture.",
     "For the route, open the same activity on connect.garmin.com, click the gear icon and export it as GPX. Share the file to FitShare on the phone.",
     "Choose a layout, the stats and a colour, then tap <b>Save PNG</b>.",
@@ -362,7 +368,7 @@ de_faq, de_faq_schema = faq([
     ("Welche Apps gehen?", "Jede App, deren Teilen-Knopf ein Bild vom Training schickt: Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health, Strava, Polar Flow, COROS und andere. Dazu Gadgetbridge-Exporte und GPX- oder TCX-Dateien."),
     ("Kommt die Karte mit dem Bild?", "Nein, nur die Zahlen. Für Route, Höhenprofil und Km-Splits zusätzlich die GPX- oder TCX-Datei teilen. <a href=\"fitness-app-instagram-story/\">Wo jede App ihren Export versteckt</a>."),
     ("Brauche ich ein Abo?", "Nein. FitShare kostet nichts, alle Layouts und Kurven inklusive. Strava-Abo oder Garmin Connect+ brauchst du nicht."),
-    ("Gibt es FitShare für das iPhone?", "Nein, nur für Android (ab 8.0)."),
+    ("Gibt es FitShare für das iPhone?", "Ja, als Web-App. <a href=\"../app/\">brickystudios.github.io/FitShare/app</a> in Safari öffnen, das gesicherte Teilen-Bild oder eine GPX-Datei wählen und den Sticker sichern. Über Teilen → Zum Home-Bildschirm liegt sie als Icon bereit. Im App Store ist sie nicht."),
     ("Verlassen meine Daten das Handy?", "Nein. Die Texterkennung läuft auf dem Handy, und die App hat keine Internet-Berechtigung."),
 ], "de")
 page("de/", "de", "FitShare: Training aus Mi Fitness, Garmin Connect & Co. als Instagram-Story-Sticker", DE_DESC, f"""
@@ -409,6 +415,8 @@ page("de/fitness-app-instagram-story/", "de", "Training aus jeder Fitness-App al
 <h2>Welche App was schickt</h2>
 {apps_table(APPS_DE, "de")}
 <p class="small">Menünamen ändern sich mit App-Updates. Fehlt FitShare im Teilen-Menü, auf Version 1.7.0 oder neuer aktualisieren.</p>
+<h2>Auf dem iPhone oder ohne APK</h2>
+<p>In der Fitness-App auf Teilen tippen und das Bild sichern, dann in der <a href="../../app/">FitShare-Web-App</a> öffnen. Mit GPX-, TCX-, FIT-, KML- und KMZ-Dateien geht das genauso. Die Texterkennung läuft im Browser, hochgeladen wird nichts.</p>
 {cta("de")}
 {de_apps_faq}
 <p class="small">Mi Fitness, Zepp, Garmin Connect, Huawei Health, Samsung Health, Strava, Polar Flow und COROS sind Marken ihrer Inhaber. FitShare ist ein unabhängiges Projekt.</p>
@@ -418,7 +426,7 @@ page("de/fitness-app-instagram-story/", "de", "Training aus jeder Fitness-App al
 
 # ------------------------------------------------------------------ crawl files
 
-slugs = ["", "fitness-app-instagram-sticker/", "garmin-connect-instagram-story/", "gadgetbridge-instagram-story/",
+slugs = ["", "app/", "fitness-app-instagram-sticker/", "garmin-connect-instagram-story/", "gadgetbridge-instagram-story/",
          "strava-sticker-alternative/", "mi-band-instagram-story/", "de/", "de/fitness-app-instagram-story/"]
 (DOCS / "sitemap.xml").write_text(
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

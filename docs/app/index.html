@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FitShare web app: workout to Instagram story sticker, in the browser</title>
+<meta name="description" content="Turn a Mi Fitness, Garmin Connect or Strava share picture, or a GPX, TCX, FIT or KMZ file, into a transparent Instagram story sticker. Runs in the browser on iPhone, Android and desktop, nothing is uploaded.">
+<link rel="canonical" href="https://brickystudios.github.io/FitShare/app/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://brickystudios.github.io/FitShare/app/">
+<meta property="og:title" content="FitShare web app: workout to Instagram story sticker">
+<meta property="og:description" content="Share picture or GPX/FIT file in, transparent story sticker out. iPhone, Android, desktop. Free, nothing is uploaded.">
+<meta property="og:image" content="https://brickystudios.github.io/FitShare/bilder/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0C0D0B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FitShare">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preload" href="../fonts/bigshoulders.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="../fonts/archivo.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="app.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"FitShare","url":"https://brickystudios.github.io/FitShare/app/","applicationCategory":"HealthApplication","operatingSystem":"Any (browser)","browserRequirements":"Requires JavaScript","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"description":"Turns fitness app share pictures and GPX, TCX, FIT, KML or KMZ files into transparent Instagram story stickers, in the browser."}</script>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="../">FITSHARE</a>
+  <span class="bar-note" data-t="Läuft im Browser · nichts wird hochgeladen|Runs in your browser · nothing is uploaded"></span>
+</header>
+
+<main id="import" class="screen">
+  <p class="kicker" data-t="WEB-APP · KOSTENLOS · OHNE KONTO|WEB APP · FREE · NO ACCOUNT"></p>
+  <h1><span data-t="DEIN TRAINING.|YOUR WORKOUT."></span><br><em data-t="ALS STICKER.|AS A STICKER."></em></h1>
+  <p class="lead" data-t="Teilen-Bild aus Mi Fitness, Garmin Connect oder Strava rein, oder eine GPX-, TCX-, FIT- oder KMZ-Datei. Raus kommt ein transparentes PNG für deine Instagram-Story. Geht auf iPhone, Android und am Rechner.|Drop in a share picture from Mi Fitness, Garmin Connect or Strava, or a GPX, TCX, FIT or KMZ file. Out comes a transparent PNG for your Instagram story. Works on iPhone, Android and desktop."></p>
+  <ol class="steps">
+    <li><b data-t="Training|Workout"></b><span data-t="In der Fitness-App beim Training auf Teilen tippen und das Bild sichern. Oder die GPX/FIT-Datei exportieren.|In your fitness app, tap Share on the workout and save the picture. Or export the GPX/FIT file."></span></li>
+    <li><b data-t="Hier öffnen|Open it here"></b><span data-t="Bild und Datei gehen auch zusammen. Die Werte liest FitShare vom Bild, die Karte kommt aus der Datei.|Picture and file work together. FitShare reads the numbers off the picture and takes the map from the file."></span></li>
+    <li><b>PNG</b><span data-t="Sticker gestalten, sichern, in Instagram als Foto-Sticker einfügen.|Style the sticker, save it, add it in Instagram as a photo sticker."></span></li>
+  </ol>
+  <p id="error" class="error" hidden></p>
+  <button id="pick" class="big" type="button"><span data-t="Bild oder Datei wählen|Choose picture or file"></span></button>
+  <p id="progress" class="hint" hidden></p>
+  <p class="hint" data-t="Am Rechner: Datei hierher ziehen oder Screenshot mit Strg+V einfügen.|On a computer: drop a file here or paste a screenshot with Ctrl+V."></p>
+  <p class="hint small"><a href="../fitness-app-instagram-sticker/" data-t="Welche App was teilt und wo die GPX steckt|Which app shares what, and where the GPX is"></a> · <a href="https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk" data-t="Android-App (APK)|Android app (APK)"></a></p>
+</main>
+
+<main id="editor" class="screen" hidden>
+  <div class="ed-top"><button id="back" class="text" type="button" data-t="‹ Neu|‹ New"></button></div>
+  <div class="ed-grid">
+    <section class="ed-preview">
+      <div id="stage" class="stage"></div>
+      <div id="styles" class="tabs" role="tablist"></div>
+    </section>
+    <section class="ed-controls">
+      <div id="sections" class="tabs small" role="tablist"></div>
+      <div id="chips" class="chips"></div>
+      <div class="tools">
+        <button id="photo" class="tile" type="button"><b data-t="FOTO|PHOTO"></b><span></span><i>+</i></button>
+        <button id="route" class="tile" type="button"><b>ROUTE</b><span></span><i>+</i></button>
+      </div>
+      <div class="actions">
+        <button id="share" class="ghost" type="button" data-t="Teilen|Share"></button>
+        <button id="save" class="big" type="button" data-t="PNG sichern|Save PNG"></button>
+      </div>
+      <p id="ed-hint" class="hint"></p>
+    </section>
+  </div>
+</main>
+
+<dialog id="name-dialog">
+  <form method="dialog">
+    <label for="look-name" data-t="Look speichern|Save look"></label>
+    <input id="look-name" maxlength="24" autocomplete="off">
+    <menu><button value="cancel" class="text" data-t="Abbrechen|Cancel"></button><button value="ok" class="big" data-t="Speichern|Save"></button></menu>
+  </form>
+</dialog>
+<div id="toast" class="toast" role="status" hidden></div>
+<input id="files" type="file" multiple hidden>
+<input id="photo-input" type="file" accept="image/*" hidden>
+<input id="route-input" type="file" multiple hidden>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

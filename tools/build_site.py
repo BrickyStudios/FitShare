@@ -123,7 +123,7 @@ def gallery(root):
 # Share button = what the app sends when you tap Share on a workout. Map = where a route file comes from.
 # Menu names change between app versions, so the wording stays close to what the vendors document.
 APPS_EN = [
-    ("Mi Fitness", "Xiaomi Smart Band, Redmi Watch", "picture", "no file export in the app; record the route with OpenTracks"),
+    ("Mi Fitness", "Xiaomi Smart Band, Redmi Watch", "picture", "workout → Export → GPX, KML or TCX → ⋯ → FitShare; without GPS only TCX (numbers, no map)"),
     ("Zepp / Zepp Life", "Amazfit", "picture", "GPX export in the workout (watches with GPS)"),
     ("Garmin Connect", "Forerunner, Venu, Fenix, Edge …", "picture", "GPX or TCX from the activity on connect.garmin.com"),
     ("Huawei Health", "Huawei Watch, Band", "picture", "route icon → Export route (GPX or TCX)"),
@@ -134,7 +134,7 @@ APPS_EN = [
     ("Gadgetbridge", "Mi Band, Amazfit, Garmin … without the vendor app", "FIT or JSON file", "in the FIT if the watch has GPS, otherwise OpenTracks"),
 ]
 APPS_DE = [
-    ("Mi Fitness", "Xiaomi Smart Band, Redmi Watch", "Bild", "kein Datei-Export in der App; Route mit OpenTracks aufzeichnen"),
+    ("Mi Fitness", "Xiaomi Smart Band, Redmi Watch", "Bild", "Training → Exportieren → GPX, KML oder TCX → ⋯ → FitShare; ohne GPS nur TCX (Werte, keine Karte)"),
     ("Zepp / Zepp Life", "Amazfit", "Bild", "GPX-Export im Training (Uhren mit GPS)"),
     ("Garmin Connect", "Forerunner, Venu, Fenix, Edge …", "Bild", "GPX oder TCX aus der Aktivität auf connect.garmin.com"),
     ("Huawei Health", "Huawei Watch, Band", "Bild", "Routen-Symbol → Route exportieren (GPX oder TCX)"),
@@ -278,7 +278,7 @@ page("strava-sticker-alternative/", "en", "Strava stats sticker alternative with
 """, [app_schema("en", "Strava-style Instagram stats sticker without a Strava account."), strava_faq_schema])
 
 band_faq, band_faq_schema = faq([
-    ("Does it work with the Mi Fitness app?", "Yes. Open the workout in Mi Fitness, tap Share and pick FitShare. Mi Fitness only shares a picture, so you get the numbers but no map."),
+    ("Does it work with the Mi Fitness app?", "Yes. Open the workout in Mi Fitness, tap Share and pick FitShare. For the map too, use Export in the workout, pick GPX and send it to FitShare via the ⋯ button."),
     ("Does it work without Mi Fitness or Zepp?", "Yes, with Gadgetbridge. It syncs the band without the vendor's app and cloud, and FitShare reads its FIT export."),
     ("Why is the distance missing?", "Bands without GPS often don't store distance. FitShare takes distance, time and elevation from a route recorded on the phone, for example with OpenTracks."),
     ("Does it show heart rate zones?", "Yes, when the band records them. FIT exports from Gadgetbridge include the time in each zone and the heart rate over the workout."),
@@ -290,7 +290,7 @@ page("mi-band-instagram-story/", "en", "Mi Band and Amazfit workouts as Instagra
 <h1>Mi Band and Amazfit workouts in your Instagram story</h1>
 <p class="lead">Mi Fitness and Zepp share a workout as a finished picture with their own layout. FitShare turns it into a sticker you style yourself. If you sync with Gadgetbridge instead, there is no share button at all; FitShare reads the FIT file.</p>
 <h2>From Mi Fitness or Zepp</h2>
-<p>Open the workout, tap <b>Share</b> and pick FitShare. It reads distance, time, average and max heart rate and calories off the picture. Zepp can also export a GPX for watches with GPS; share it afterwards and the route joins the sticker.</p>
+<p>Open the workout, tap <b>Share</b> and pick FitShare. It reads distance, time, average and max heart rate and calories off the picture. Mi Fitness has <b>Export</b> in the workout as well: pick GPX, KML or TCX, tap ⋯ and choose FitShare. With GPS the route comes along; without GPS only TCX is offered, which still carries the numbers. Zepp exports a GPX for watches with GPS.</p>
 <p>On an iPhone, Mi Fitness and Zepp work the same way: save the share picture and open it in the <a href="../app/">web app</a>.</p>
 <h2>From Gadgetbridge</h2>
 <h2>Bands without GPS</h2>

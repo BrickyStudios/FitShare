@@ -142,8 +142,14 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                             ShareCardParser.looksLikeImage(bytes) ->
                                 stats = ShareCardParser.parse(ShareCardReader.read(bytes))
                                     ?: error(tr("Auf dem Bild stehen keine Trainingswerte.", "No workout numbers found in this picture."))
-                            RouteParser.looksLikeRoute(bytes) ->
-                                route = RouteParser.parse(bytes) ?: error(tr("Keine GPS-Punkte gefunden.", "No GPS points found."))
+                            RouteParser.looksLikeRoute(bytes) -> {
+                                // a TCX can carry the workout totals too (Mi Fitness export, also without GPS)
+                                val tcxStats = if (RouteParser.isZip(bytes)) null else WorkoutParser.parseTcxStats(bytes.decodeToString())
+                                val r = RouteParser.parse(bytes)
+                                if (r == null && tcxStats == null) error(tr("Keine GPS-Punkte gefunden.", "No GPS points found."))
+                                r?.let { route = it }
+                                tcxStats?.let { stats = it }
+                            }
                             else -> error(tr("Unbekanntes Format. Erwartet: Teilen-Bild, FIT, JSON, GPX, TCX, KML oder KMZ.", "Unknown format. Expected a share picture, FIT, JSON, GPX, TCX, KML or KMZ."))
                         }
                     } catch (e: Exception) {
@@ -190,6 +196,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         files.listFiles { f -> f.name.startsWith("background-") && f != except }?.forEach { it.delete() }
     fun clearRoute() = _state.update { it.copy(route = null) }
     fun clearError() = _state.update { it.copy(error = null) }
+    fun showError(message: String) = _state.update { it.copy(error = message) }
     fun reset() {
         _state.value = UiState()
         viewModelScope.launch(Dispatchers.IO) { deleteBackgrounds(except = null) }

@@ -105,4 +105,40 @@ class ShareCardParserTest {
         assertEquals(600, r.movingSeconds)
         assertEquals(10.0, r.elevationGainMeters, 0.1)
     }
+
+    // Layout of Mi Fitness 9.8 "Exportieren → TCX" (TcxHelper); without GPS there is no <Track>.
+    @Test fun miFitnessTcxWithoutGpsGivesStats() {
+        val tcx = """<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><TrainingCenterDatabase creator="Mi Fitness" version="1.0" xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"><Activities><Activity Sport="Radfahren im Freien"><Id>2026-11-01T14:05:00.000Z</Id><Calories>412</Calories><Lap><TotalTimeSeconds>3725</TotalTimeSeconds><DistanceMeters>24310</DistanceMeters><Calories>412</Calories><CumulativeClimb>186.50</CumulativeClimb><HeartRateBpm>138</HeartRateBpm><AverageSpeed>6.5</AverageSpeed><Steps>0</Steps></Lap></Activity></Activities></TrainingCenterDatabase>"""
+        assertTrue(RouteParser.looksLikeRoute(tcx.toByteArray()))
+        assertNull(RouteParser.parse(tcx.toByteArray()))
+        val s = WorkoutParser.parseTcxStats(tcx)!!
+        assertEquals(3725, s.activeSeconds)
+        assertEquals(24310.0, s.distanceMeters, 0.1)
+        assertEquals(412, s.calories)
+        assertEquals(138, s.averageHR)
+        assertEquals(186.5, s.elevationGainMeters, 0.01)
+        assertEquals(Sport.CYCLING, s.sport)
+        val local = java.time.LocalDateTime.of(2026, 11, 1, 14, 5).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        assertEquals(local, s.startMillis)
+    }
+
+    @Test fun garminTcxLapsAreSummed() {
+        val tcx = """<TrainingCenterDatabase><Activities><Activity Sport="Running"><Id>2026-06-21T10:00:00Z</Id>
+            <Lap StartTime="2026-06-21T10:00:00Z"><TotalTimeSeconds>600</TotalTimeSeconds><DistanceMeters>2000</DistanceMeters><Calories>100</Calories><AverageHeartRateBpm><Value>140</Value></AverageHeartRateBpm><MaximumHeartRateBpm><Value>160</Value></MaximumHeartRateBpm>
+            <Track><Trackpoint><HeartRateBpm><Value>99</Value></HeartRateBpm></Trackpoint></Track></Lap>
+            <Lap StartTime="2026-06-21T10:10:00Z"><TotalTimeSeconds>300</TotalTimeSeconds><DistanceMeters>1000</DistanceMeters><Calories>50</Calories><AverageHeartRateBpm><Value>170</Value></AverageHeartRateBpm><MaximumHeartRateBpm><Value>180</Value></MaximumHeartRateBpm></Lap>
+            </Activity></Activities></TrainingCenterDatabase>"""
+        val s = WorkoutParser.parseTcxStats(tcx)!!
+        assertEquals(900, s.activeSeconds)
+        assertEquals(3000.0, s.distanceMeters, 0.1)
+        assertEquals(150, s.calories)
+        assertEquals(150, s.averageHR) // (140·600 + 170·300) / 900
+        assertEquals(180, s.maxHR)
+        assertEquals(Sport.RUNNING, s.sport)
+        assertEquals(1782036000000L, s.startMillis)
+    }
+
+    @Test fun tcxWithoutLapTimesHasNoStats() {
+        assertNull(WorkoutParser.parseTcxStats("<TrainingCenterDatabase><Activities><Activity><Lap></Lap></Activity></Activities></TrainingCenterDatabase>"))
+    }
 }

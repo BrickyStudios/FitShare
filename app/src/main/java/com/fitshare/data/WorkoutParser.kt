@@ -60,4 +60,48 @@ object WorkoutParser {
 
     private fun JsonObject.str(key: String): String =
         value(key)?.takeIf { it.isJsonPrimitive }?.asString ?: ""
+
+    private val tcxLapRegex = Regex("<Lap\\b[^>]*>(.*?)</Lap>", RegexOption.DOT_MATCHES_ALL)
+    private val tcxIdRegex = Regex("<Id>(.*?)</Id>")
+    private val tcxSportRegex = Regex("<Activity[^>]*Sport=\"([^\"]*)\"")
+
+    /**
+     * Workout totals from the <Lap> summaries of a TCX. Mi Fitness ("Exportieren") writes them even without GPS,
+     * with the average heart rate as a bare <HeartRateBpm> number; Garmin & co. use <AverageHeartRateBpm><Value>.
+     * Null if the file has no lap times.
+     */
+    fun parseTcxStats(tcx: String): WorkoutStats? {
+        val laps = tcxLapRegex.findAll(tcx).map { it.groupValues[1].substringBefore("<Track>") }.toList()
+        fun List<String>.num(pattern: String) = map { Regex(pattern).find(it)?.groupValues?.get(1)?.toDoubleOrNull() ?: 0.0 }
+        val seconds = laps.num("<TotalTimeSeconds>\\s*([\\d.]+)")
+        if (seconds.sum() <= 0) return null
+        val hr = laps.num("<AverageHeartRateBpm>\\s*<Value>\\s*([\\d.]+)").zip(laps.num("<HeartRateBpm>\\s*([\\d.]+)")) { a, b -> a.takeIf { it > 0 } ?: b }
+        val hrSeconds = seconds.zip(hr).filter { it.second > 0 }
+        val avgHr = if (hrSeconds.isEmpty()) 0.0 else hrSeconds.sumOf { it.first * it.second } / hrSeconds.sumOf { it.first }.coerceAtLeast(1.0)
+        val sport = tcxSportRegex.find(tcx)?.groupValues?.get(1)?.lowercase().orEmpty()
+        return WorkoutStats(
+            startMillis = tcxIdRegex.find(tcx)?.groupValues?.get(1)?.let { tcxTime(it.trim(), local = "creator=\"Mi Fitness\"" in tcx) },
+            activeSeconds = seconds.sum().toInt(),
+            distanceMeters = laps.num("<DistanceMeters>\\s*([\\d.]+)").sum(),
+            calories = laps.num("<Calories>\\s*([\\d.]+)").sum().toInt(),
+            averageHR = avgHr.toInt(),
+            maxHR = laps.num("<MaximumHeartRateBpm>\\s*<Value>\\s*([\\d.]+)").maxOrNull()?.toInt() ?: 0,
+            steps = laps.num("<Steps>\\s*([\\d.]+)").sum().toInt(),
+            elevationGainMeters = laps.num("<CumulativeClimb>\\s*([\\d.]+)").sum(),
+            // Garmin writes Biking/Running/Other; Mi Fitness the sport name in the phone's language
+            sport = when {
+                listOf("bik", "cycl", "rad", "fahr").any { it in sport } -> Sport.CYCLING
+                listOf("run", "lauf").any { it in sport } -> Sport.RUNNING
+                listOf("swim", "schwimm").any { it in sport } -> Sport.SWIMMING
+                listOf("walk", "hik", "wander", "gehen").any { it in sport } -> Sport.WALKING
+                else -> null
+            }
+        )
+    }
+
+    // Mi Fitness formats local time with a literal "Z", so its timestamps are not UTC.
+    private fun tcxTime(s: String, local: Boolean): Long? = runCatching {
+        if (local) java.time.LocalDateTime.parse(s.removeSuffix("Z")).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        else OffsetDateTime.parse(s).toInstant().toEpochMilli()
+    }.getOrNull()
 }

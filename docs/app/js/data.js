@@ -257,6 +257,37 @@ export function parseTcx(tcx) {
   return buildRoute(segs);
 }
 
+/** Workout totals from the <Lap> summaries of a TCX (Mi Fitness writes them even without GPS); null without lap times. */
+export function parseTcxStats(tcx) {
+  const laps = [...tcx.matchAll(/<Lap\b[^>]*>([\s\S]*?)<\/Lap>/g)].map((m) => m[1].split("<Track>")[0]);
+  const num = (re) => laps.map((l) => toNum(re.exec(l)?.[1]) || 0);
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  const seconds = num(/<TotalTimeSeconds>\s*([\d.]+)/);
+  if (sum(seconds) <= 0) return null;
+  // Garmin: <AverageHeartRateBpm><Value>, Mi Fitness: a bare <HeartRateBpm> number
+  const bare = num(/<HeartRateBpm>\s*([\d.]+)/);
+  const hr = num(/<AverageHeartRateBpm>\s*<Value>\s*([\d.]+)/).map((a, i) => a || bare[i]);
+  const hrSec = sum(seconds.filter((_, i) => hr[i] > 0));
+  const avgHr = hrSec > 0 ? sum(seconds.map((s, i) => s * hr[i])) / hrSec : 0;
+  const sport = (/<Activity[^>]*Sport="([^"]*)"/.exec(tcx)?.[1] || "").toLowerCase();
+  const has = (...k) => k.some((x) => sport.includes(x));
+  // Mi Fitness formats local time with a literal "Z"; Date.parse reads it as local once the Z is gone
+  const id = /<Id>(.*?)<\/Id>/.exec(tcx)?.[1]?.trim();
+  return {
+    ...emptyStats(),
+    startMillis: id ? parseTime(tcx.includes('creator="Mi Fitness"') ? id.replace(/Z$/, "") : id) : null,
+    activeSeconds: Math.trunc(sum(seconds)),
+    distanceMeters: sum(num(/<DistanceMeters>\s*([\d.]+)/)),
+    calories: Math.trunc(sum(num(/<Calories>\s*([\d.]+)/))),
+    averageHR: Math.trunc(avgHr),
+    maxHR: Math.trunc(Math.max(0, ...num(/<MaximumHeartRateBpm>\s*<Value>\s*([\d.]+)/))),
+    steps: Math.trunc(sum(num(/<Steps>\s*([\d.]+)/))),
+    elevationGainMeters: sum(num(/<CumulativeClimb>\s*([\d.]+)/)),
+    sport: has("bik", "cycl", "rad", "fahr") ? "CYCLING" : has("run", "lauf") ? "RUNNING" : has("swim", "schwimm") ? "SWIMMING"
+      : has("walk", "hik", "wander", "gehen") ? "WALKING" : null,
+  };
+}
+
 export function parseKml(kml) {
   // OpenTracks writes empty <coord/> after some <when>; pairing by document order keeps them aligned
   const segs = [];

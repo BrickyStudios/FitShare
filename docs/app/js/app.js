@@ -82,7 +82,14 @@ async function open(files) {
         const text = await ocr(f, (m) => progress(m));
         stats = D.parseShareCard(text) || (() => { throw new Error(tr("Auf dem Bild stehen keine Trainingswerte.", "No workout numbers found in this picture.")); })();
       } else if (D.looksLikeJson(b)) stats = D.parseWorkoutJson(new TextDecoder().decode(b), f.name);
-      else if (D.looksLikeRoute(b)) route = (await D.parseRoute(b)) || (() => { throw new Error(tr("Keine GPS-Punkte gefunden.", "No GPS points found.")); })();
+      else if (D.looksLikeRoute(b)) {
+        // a TCX can carry the workout totals too (Mi Fitness export, also without GPS)
+        const tcxStats = b[0] === 0x50 && b[1] === 0x4b ? null : D.parseTcxStats(new TextDecoder().decode(b));
+        const r = await D.parseRoute(b);
+        if (!r && !tcxStats) throw new Error(tr("Keine GPS-Punkte gefunden.", "No GPS points found."));
+        if (r) route = r;
+        if (tcxStats) stats = tcxStats;
+      }
       else throw new Error(tr("Unbekanntes Format. Erwartet: Teilen-Bild, FIT, JSON, GPX, TCX, KML oder KMZ.", "Unknown format. Expected a share picture, FIT, JSON, GPX, TCX, KML or KMZ."));
     } catch (e) {
       console.error(e);

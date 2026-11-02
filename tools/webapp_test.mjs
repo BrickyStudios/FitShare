@@ -188,3 +188,32 @@ test("share cards: Mi Fitness, Garmin, Strava, traps", () => {
   assert.ok(D.looksLikeImage(new Uint8Array([0xff, 0xd8, 0xff])));
   assert.ok(!D.looksLikeImage(enc("{}")));
 });
+
+test("mi fitness tcx without gps gives stats", () => {
+  const tcx = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><TrainingCenterDatabase creator="Mi Fitness" version="1.0"><Activities><Activity Sport="Radfahren im Freien"><Id>2026-11-01T14:05:00.000Z</Id><Calories>412</Calories><Lap><TotalTimeSeconds>3725</TotalTimeSeconds><DistanceMeters>24310</DistanceMeters><Calories>412</Calories><CumulativeClimb>186.50</CumulativeClimb><HeartRateBpm>138</HeartRateBpm><AverageSpeed>6.5</AverageSpeed><Steps>0</Steps></Lap></Activity></Activities></TrainingCenterDatabase>`;
+  const s = D.parseTcxStats(tcx);
+  assert.equal(s.activeSeconds, 3725);
+  assert.equal(s.distanceMeters, 24310);
+  assert.equal(s.calories, 412);
+  assert.equal(s.averageHR, 138);
+  near(s.elevationGainMeters, 186.5, 0.01);
+  assert.equal(s.sport, "CYCLING");
+  assert.equal(s.startMillis, new Date(2026, 10, 1, 14, 5).getTime());
+});
+
+test("garmin tcx laps are summed", () => {
+  const tcx = `<TrainingCenterDatabase><Activities><Activity Sport="Running"><Id>2026-06-21T10:00:00Z</Id>
+    <Lap><TotalTimeSeconds>600</TotalTimeSeconds><DistanceMeters>2000</DistanceMeters><Calories>100</Calories><AverageHeartRateBpm><Value>140</Value></AverageHeartRateBpm><MaximumHeartRateBpm><Value>160</Value></MaximumHeartRateBpm>
+    <Track><Trackpoint><HeartRateBpm><Value>99</Value></HeartRateBpm></Trackpoint></Track></Lap>
+    <Lap><TotalTimeSeconds>300</TotalTimeSeconds><DistanceMeters>1000</DistanceMeters><Calories>50</Calories><AverageHeartRateBpm><Value>170</Value></AverageHeartRateBpm><MaximumHeartRateBpm><Value>180</Value></MaximumHeartRateBpm></Lap>
+    </Activity></Activities></TrainingCenterDatabase>`;
+  const s = D.parseTcxStats(tcx);
+  assert.equal(s.activeSeconds, 900);
+  assert.equal(s.distanceMeters, 3000);
+  assert.equal(s.calories, 150);
+  assert.equal(s.averageHR, 150);
+  assert.equal(s.maxHR, 180);
+  assert.equal(s.sport, "RUNNING");
+  assert.equal(s.startMillis, 1782036000000);
+  assert.equal(D.parseTcxStats("<TrainingCenterDatabase><Lap></Lap></TrainingCenterDatabase>"), null);
+});

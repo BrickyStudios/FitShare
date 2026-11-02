@@ -106,7 +106,7 @@ Any app whose Share button sends a picture of the workout. FitShare reads Latin 
 
 | App | Watches | Share sends | File for the map |
 |---|---|---|---|
-| Mi Fitness | Xiaomi Smart Band, Redmi Watch | picture | no file export in the app; record the route with OpenTracks |
+| Mi Fitness | Xiaomi Smart Band, Redmi Watch | picture | workout → Export → GPX, KML or TCX → ⋯ → FitShare. Without GPS only TCX: numbers, no map |
 | Zepp / Zepp Life | Amazfit | picture | GPX export in the workout (watches with GPS) |
 | Garmin Connect | Forerunner, Venu, Fenix, Edge … | picture | GPX or TCX from the activity on connect.garmin.com |
 | Huawei Health | Huawei Watch, Band | picture | route icon → Export route (GPX or TCX) |

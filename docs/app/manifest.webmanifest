@@ -20,7 +20,7 @@
       "files": [
         {
           "name": "files",
-          "accept": ["image/*", "application/octet-stream", "application/json", "application/gpx+xml", "application/vnd.garmin.tcx+xml",
+          "accept": ["image/*", "text/plain", "application/octet-stream", "application/json", "application/gpx+xml", "application/vnd.garmin.tcx+xml",
             "application/vnd.google-earth.kml+xml", "application/vnd.google-earth.kmz", "application/xml", "text/xml",
             ".fit", ".gpx", ".tcx", ".kml", ".kmz", ".json"]
         }

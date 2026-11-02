@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.core.content.IntentCompat
 import com.fitshare.data.WorkoutViewModel
+import com.fitshare.data.tr
 import com.fitshare.ui.screens.EditorScreen
 import com.fitshare.ui.screens.ImportScreen
 import com.fitshare.ui.theme.FitShareTheme
@@ -73,6 +74,9 @@ class MainActivity : ComponentActivity() {
                 IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
             else -> emptyList()
         }
+        // the text/plain filter (for Mi Fitness exports) also catches shared links and text
+        if (uris.isEmpty() && intent.action == Intent.ACTION_SEND && intent.hasExtra(Intent.EXTRA_TEXT))
+            vm.showError(tr("FitShare öffnet nur Dateien und Bilder, keinen Text.", "FitShare opens files and pictures, not text."))
         vm.open(uris)
     }
 }

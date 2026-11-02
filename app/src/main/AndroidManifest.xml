@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Only for saving to the gallery on Android 8/9; newer versions need no permission. -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
+
+    <!-- ML Kit asks for these to send usage stats to Google. The OCR model is bundled, so FitShare stays offline. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
     <application
         android:allowBackup="true"
@@ -36,6 +41,21 @@
                 <data android:mimeType="application/gpx+xml" />
                 <data android:mimeType="application/vnd.google-earth.kml+xml" />
                 <data android:mimeType="application/vnd.google-earth.kmz" />
+                <!-- GPX/TCX exports from Huawei Health, Zepp, Samsung Health, Polar, Coros, Garmin web; senders label XML loosely -->
+                <data android:mimeType="application/gpx" />
+                <data android:mimeType="text/gpx+xml" />
+                <data android:mimeType="application/vnd.garmin.tcx+xml" />
+                <data android:mimeType="application/tcx+xml" />
+                <data android:mimeType="application/xml" />
+                <data android:mimeType="text/xml" />
+            </intent-filter>
+            <!-- The "Share" button in Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health, Strava & co.
+                 sends a picture of the workout; FitShare reads the numbers off it. Not VIEW, so it stays out of the gallery's "Open with". -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
 

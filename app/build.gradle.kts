@@ -12,8 +12,8 @@ android {
         applicationId = "com.fitshare"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.6.0"
+        versionCode = 9
+        versionName = "1.7.0"
     }
 
     // Release key lives only in CI secrets (and ~/.config/fitshare on the maintainer's machine).
@@ -30,6 +30,8 @@ android {
 
     buildTypes {
         release {
+            // the OCR library is native; phones are ARM, x86 only matters for the emulator (debug builds keep it)
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -45,6 +47,8 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    // compress the OCR .so files inside the APK: ~10 MB smaller download, unpacked once at install
+    packaging { jniLibs { useLegacyPackaging = true } }
     buildFeatures {
         compose = true
     }
@@ -61,6 +65,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.gson)
+    // OCR for share pictures, model inside the APK: works on Huawei and degoogled phones without Play Services
+    implementation(libs.mlkit.text)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
 }

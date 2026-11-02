@@ -312,7 +312,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                 detail = route?.let {
                     val d = formatDistance(it.distanceMeters)
                     "${d.value} ${d.unit.lowercase()} · ${formatInt(it.pointCount)} " + tr("Pkt.", "pts")
-                } ?: "GPX · KML · KMZ",
+                } ?: "GPX · TCX · KML",
                 active = route != null,
                 modifier = Modifier.weight(1f),
                 onRemove = { vm.clearRoute() },

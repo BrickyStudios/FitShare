@@ -71,13 +71,13 @@ fun ImportScreen(state: UiState, onOpen: (List<android.net.Uri>) -> Unit) {
         )
         Spacer(Modifier.height(20.dp))
         Text(
-            tr("Gadgetbridge-Export und Route rein, fertiges Bild für Instagram raus. Alles bleibt auf dem Handy.", "Drop in a Gadgetbridge export and a route, get an image for Instagram. Nothing leaves your phone."),
+            tr("Training aus Gadgetbridge, Mi Fitness, Garmin Connect & Co. rein, fertiges Bild für Instagram raus. Alles bleibt auf dem Handy.", "Drop in a workout from Gadgetbridge, Mi Fitness, Garmin Connect and others, get an image for Instagram. Nothing leaves your phone."),
             style = Type.body,
             modifier = Modifier.reveal(2)
         )
         Spacer(Modifier.height(36.dp))
-        Step(3, "01", tr("Workout", "Workout"), tr("Gadgetbridge → Aktivität → ⋮ → „Fit-Datei teilen“ → FitShare. JSON geht auch.", "Gadgetbridge → activity → ⋮ → “Share FIT File” → FitShare. JSON works too."))
-        Step(4, "02", tr("Route", "Route"), tr("Optional, falls die FIT keine GPS-Daten hat: GPX, KML oder KMZ, zum Beispiel aus OpenTracks.", "Optional, if the FIT has no GPS: GPX, KML or KMZ, for example from OpenTracks."))
+        Step(3, "01", tr("Workout", "Workout"), tr("In Mi Fitness, Garmin Connect, Zepp, Huawei Health oder Strava beim Training auf Teilen tippen → FitShare. Die Werte liest FitShare vom Bild. Aus Gadgetbridge: ⋮ → „Fit-Datei teilen“.", "In Mi Fitness, Garmin Connect, Zepp, Huawei Health or Strava, tap Share on the workout → FitShare. FitShare reads the numbers off the picture. From Gadgetbridge: ⋮ → “Share FIT File”."))
+        Step(4, "02", tr("Route", "Route"), tr("Optional, für die Karte: GPX, TCX, KML oder KMZ, zum Beispiel aus OpenTracks oder dem GPX-Export der Fitness-App.", "Optional, for the map: GPX, TCX, KML or KMZ, for example from OpenTracks or your fitness app's GPX export."))
         Step(5, "03", "PNG", tr("Overlay gestalten, speichern, in Instagram als Foto-Sticker einfügen.", "Style the overlay, save it, add it as a photo sticker in Instagram."))
         Box(Modifier.fillMaxWidth().height(1.dp).background(Hairline))
         Spacer(Modifier.height(40.dp))

@@ -3,29 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FitShare: Gadgetbridge workouts as Instagram story stickers</title>
-<meta name="description" content="Turn Gadgetbridge workouts into Instagram story stickers like Strava&#x27;s: a transparent PNG with distance, time, route and heart rate. Free Android app, offline, no account.">
+<title>FitShare: Instagram story stickers from Mi Fitness, Garmin Connect and Gadgetbridge</title>
+<meta name="description" content="Turn workouts from Mi Fitness, Garmin Connect, Gadgetbridge and other fitness apps into Instagram story stickers with distance, time, route and heart rate. Free Android app, offline.">
 <link rel="canonical" href="https://brickystudios.github.io/FitShare/"><link rel="alternate" hreflang="en" href="https://brickystudios.github.io/FitShare/"><link rel="alternate" hreflang="de" href="https://brickystudios.github.io/FitShare/de/"><link rel="alternate" hreflang="x-default" href="https://brickystudios.github.io/FitShare/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://brickystudios.github.io/FitShare/">
-<meta property="og:title" content="FitShare: Gadgetbridge workouts as Instagram story stickers">
-<meta property="og:description" content="Turn Gadgetbridge workouts into Instagram story stickers like Strava&#x27;s: a transparent PNG with distance, time, route and heart rate. Free Android app, offline, no account.">
+<meta property="og:title" content="FitShare: Instagram story stickers from Mi Fitness, Garmin Connect and Gadgetbridge">
+<meta property="og:description" content="Turn workouts from Mi Fitness, Garmin Connect, Gadgetbridge and other fitness apps into Instagram story stickers with distance, time, route and heart rate. Free Android app, offline.">
 <meta property="og:image" content="https://brickystudios.github.io/FitShare/bilder/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0C0D0B">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230C0D0B'/%3E%3Cpath d='M10 7h13v4h-8.5v4H21v4h-6.5v6H10z' fill='%23C6F432'/%3E%3C/svg%3E">
 <link rel="preload" href="fonts/bigshoulders.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="style.css">
-<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "FitShare", "operatingSystem": "Android 8.0+", "applicationCategory": "HealthApplication", "description": "Turn Gadgetbridge workouts into Instagram story stickers like Strava's: a transparent PNG with distance, time, route and heart rate. Free Android app, offline, no account.", "inLanguage": "en", "license": "https://www.gnu.org/licenses/gpl-3.0.html", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "downloadUrl": "https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk", "image": "https://brickystudios.github.io/FitShare/bilder/social-preview.png", "url": "https://brickystudios.github.io/FitShare/"}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is FitShare free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. It is open source under GPL-3.0, with no ads and no in-app purchases."}}, {"@type": "Question", "name": "Do I need Strava?", "acceptedAnswer": {"@type": "Answer", "text": "No. FitShare reads the files Gadgetbridge exports and draws the sticker on your phone."}}, {"@type": "Question", "name": "Which watches work?", "acceptedAnswer": {"@type": "Answer", "text": "Any watch Gadgetbridge syncs workouts from, for example Xiaomi Smart Band, Amazfit and Garmin. FitShare reads the FIT or JSON export, not the watch."}}, {"@type": "Question", "name": "Is there an iPhone version?", "acceptedAnswer": {"@type": "Answer", "text": "No. Gadgetbridge is Android-only, and so is FitShare (Android 8.0 or newer)."}}, {"@type": "Question", "name": "Is it on Google Play?", "acceptedAnswer": {"@type": "Answer", "text": "Not yet. Install the APK from GitHub Releases, or add the repository to Obtainium for automatic updates."}}, {"@type": "Question", "name": "Does my data leave the phone?", "acceptedAnswer": {"@type": "Answer", "text": "No. The app has no internet permission, so it cannot upload anything."}}]}]</script>
+<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "FitShare", "operatingSystem": "Android 8.0+", "applicationCategory": "HealthApplication", "description": "Turn workouts from Mi Fitness, Garmin Connect, Gadgetbridge and other fitness apps into Instagram story stickers with distance, time, route and heart rate. Free Android app, offline.", "inLanguage": "en", "license": "https://www.gnu.org/licenses/gpl-3.0.html", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "downloadUrl": "https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk", "image": "https://brickystudios.github.io/FitShare/bilder/social-preview.png", "url": "https://brickystudios.github.io/FitShare/"}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is FitShare free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. It is open source under GPL-3.0, with no ads and no in-app purchases."}}, {"@type": "Question", "name": "Which apps work?", "acceptedAnswer": {"@type": "Answer", "text": "Any app whose Share button sends a picture of the workout: Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health, Strava, Polar Flow, COROS and others. Gadgetbridge exports and GPX or TCX files work too. FitShare reads Latin script, so the app can be set to English, German, French, Spanish and similar languages."}}, {"@type": "Question", "name": "Do I get the map from the share picture?", "acceptedAnswer": {"@type": "Answer", "text": "No, only the numbers. For the route, the elevation profile and the km splits, also share the workout's GPX or TCX file. <a href=\"fitness-app-instagram-sticker/\">Where each app hides its export</a>."}}, {"@type": "Question", "name": "Do I need a subscription?", "acceptedAnswer": {"@type": "Answer", "text": "No. FitShare is free, and so is every layout and graph in it. You don't need Strava, Garmin Connect+ or any other paid plan."}}, {"@type": "Question", "name": "Is there an iPhone version?", "acceptedAnswer": {"@type": "Answer", "text": "No. FitShare is Android-only (Android 8.0 or newer)."}}, {"@type": "Question", "name": "Is it on Google Play?", "acceptedAnswer": {"@type": "Answer", "text": "Not yet. Install the APK from GitHub Releases, or add the repository to Obtainium for automatic updates."}}, {"@type": "Question", "name": "Does my data leave the phone?", "acceptedAnswer": {"@type": "Answer", "text": "No. Text recognition runs on the phone, and the app has no internet permission, so it cannot upload anything."}}]}]</script>
 </head>
 <body>
-<header class="top"><a class="brand" href="./">FITSHARE</a><nav><a href="gadgetbridge-instagram-story/">Guide</a><a href="de/">Deutsch</a><a href="https://github.com/BrickyStudios/FitShare">GitHub</a></nav></header>
+<header class="top"><a class="brand" href="./">FITSHARE</a><nav><a href="fitness-app-instagram-sticker/">Apps</a><a href="de/">Deutsch</a><a href="https://github.com/BrickyStudios/FitShare">GitHub</a></nav></header>
 <main>
 
 <section class="hero">
 <p class="kicker">FREE ANDROID APP · OPEN SOURCE</p>
 <h1>Your workout.<br><span>As a sticker.</span></h1>
-<p class="lead">FitShare turns a Gadgetbridge workout into a transparent PNG for your Instagram story: distance, time, route, heart rate. Like Strava's stats sticker, without Strava and without an account.</p>
+<p class="lead">Tap Share in Mi Fitness, Garmin Connect, Zepp or Huawei Health, pick FitShare, and you get a transparent PNG for your Instagram story with distance, time and heart rate. Add the GPX and the route goes on it too. Like Strava's stats sticker, without Strava, an account or a subscription.</p>
 <p class="cta"><a class="btn" href="https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk">Download the APK</a><a class="btn ghost" href="https://github.com/BrickyStudios/FitShare">View on GitHub</a></p><p class="small">Android 8.0 or newer. Free, no account, no internet permission. Get updates through Obtainium.</p>
 </section>
 <div class="gallery">
@@ -34,30 +34,32 @@
 <img src="bilder/1-night.png" width="540" height="960" loading="lazy" alt="Night story: glowing route, distance, heart rate zones and a stats table">
 </div>
 <section>
-<h2>From watch to story in five taps</h2>
-<ol class="steps"><li><span>In Gadgetbridge, open the workout and tap ⋮ → <b>Share FIT File</b>.</span></li><li><span>Pick <b>FitShare</b> in the share sheet.</span></li><li><span>No GPS in the file? Share the route from OpenTracks (KMZ or GPX) to FitShare too.</span></li><li><span>Choose a layout, the stats and a colour, then tap <b>Save PNG</b>.</span></li><li><span>In Instagram, open a story, tap Stickers → Photo and pick the PNG.</span></li></ol>
-<p><a href="gadgetbridge-instagram-story/">Step-by-step guide with tips →</a></p>
+<h2>From fitness app to story in five taps</h2>
+<ol class="steps"><li><span>In your fitness app, open the workout and tap <b>Share</b>.</span></li><li><span>Pick <b>FitShare</b>. It reads distance, time, heart rate, calories and elevation off the picture.</span></li><li><span>For the map, export the workout as GPX or TCX and share that file to FitShare too.</span></li><li><span>Choose a layout, the stats and a colour, then tap <b>Save PNG</b>.</span></li><li><span>In Instagram, open a story, tap Stickers → Photo and pick the PNG.</span></li></ol>
+<p><a href="fitness-app-instagram-sticker/">Which apps work, and where they hide the GPX →</a></p>
 </section>
 <section class="grid">
-<div><h3>Reads what Gadgetbridge exports</h3><p>FIT files (sport, heart rate, zones, GPS if recorded) and the JSON details. Routes from GPX, KML or KMZ, so OpenTracks tracks work as they are.</p></div>
-<div><h3>Four overlay layouts</h3><p>Stack, Row, Card and Map. Pick up to four stats in your order, white, black or the sport's colour.</p></div>
+<div><h3>Works with the app you already use</h3><p>Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health, Strava: their share picture is enough. Also Gadgetbridge FIT and JSON, and routes as GPX, TCX, KML or KMZ.</p></div>
+<div><h3>Four overlay layouts</h3><p>Stack, Row, Card and Map. Pick up to four stats in your order, white, black or the sport's colour. Or a finished design, Night or Race bib, as a 9:16 story or 4:5 post.</p></div>
 <div><h3>Elevation, heart rate, splits</h3><p>Elevation profile, heart rate graph, km splits with your fastest kilometre, heart rate zones.</p></div>
 <div><h3>Your look, one tap away</h3><p>Save a setup as a named look. The last eight exports stay in a history, so the next workout looks like the last one.</p></div>
-<div><h3>Full stories and feed posts</h3><p>Two finished designs, Night and Race bib, as a 9:16 story or a 4:5 feed post.</p></div>
-<div><h3>Stays on your phone</h3><p>No account, no analytics, no internet permission. Files stay on your phone.</p></div>
+<div><h3>No subscription</h3><p>Elevation profile, splits and heart rate zones are free. Nothing in FitShare sits behind a paid plan.</p></div>
+<div><h3>Stays on your phone</h3><p>Text recognition runs on the phone. No account, no analytics, no internet permission.</p></div>
 </section>
 <section>
 <h2>Guides</h2>
 <ul class="links">
+<li><a href="fitness-app-instagram-sticker/">Every fitness app: share button and GPX export at a glance</a></li>
+<li><a href="garmin-connect-instagram-story/">Garmin Connect workouts as an Instagram story sticker</a></li>
+<li><a href="mi-band-instagram-story/">Mi Fitness, Zepp and Mi Band workouts in your story</a></li>
 <li><a href="gadgetbridge-instagram-story/">How to share a Gadgetbridge workout to Instagram</a></li>
 <li><a href="strava-sticker-alternative/">A Strava stats sticker without Strava</a></li>
-<li><a href="mi-band-instagram-story/">Mi Band and Amazfit workouts in your Instagram story</a></li>
 <li><a href="de/">Auf Deutsch: Gadgetbridge-Training als Instagram-Story</a></li>
 </ul>
 </section>
-<section class="faq"><h2>Questions</h2><details><summary>Is FitShare free?</summary><p>Yes. It is open source under GPL-3.0, with no ads and no in-app purchases.</p></details><details><summary>Do I need Strava?</summary><p>No. FitShare reads the files Gadgetbridge exports and draws the sticker on your phone.</p></details><details><summary>Which watches work?</summary><p>Any watch Gadgetbridge syncs workouts from, for example Xiaomi Smart Band, Amazfit and Garmin. FitShare reads the FIT or JSON export, not the watch.</p></details><details><summary>Is there an iPhone version?</summary><p>No. Gadgetbridge is Android-only, and so is FitShare (Android 8.0 or newer).</p></details><details><summary>Is it on Google Play?</summary><p>Not yet. Install the APK from GitHub Releases, or add the repository to Obtainium for automatic updates.</p></details><details><summary>Does my data leave the phone?</summary><p>No. The app has no internet permission, so it cannot upload anything.</p></details></section>
+<section class="faq"><h2>Questions</h2><details><summary>Is FitShare free?</summary><p>Yes. It is open source under GPL-3.0, with no ads and no in-app purchases.</p></details><details><summary>Which apps work?</summary><p>Any app whose Share button sends a picture of the workout: Mi Fitness, Garmin Connect, Zepp, Huawei Health, Samsung Health, Strava, Polar Flow, COROS and others. Gadgetbridge exports and GPX or TCX files work too. FitShare reads Latin script, so the app can be set to English, German, French, Spanish and similar languages.</p></details><details><summary>Do I get the map from the share picture?</summary><p>No, only the numbers. For the route, the elevation profile and the km splits, also share the workout's GPX or TCX file. <a href="fitness-app-instagram-sticker/">Where each app hides its export</a>.</p></details><details><summary>Do I need a subscription?</summary><p>No. FitShare is free, and so is every layout and graph in it. You don't need Strava, Garmin Connect+ or any other paid plan.</p></details><details><summary>Is there an iPhone version?</summary><p>No. FitShare is Android-only (Android 8.0 or newer).</p></details><details><summary>Is it on Google Play?</summary><p>Not yet. Install the APK from GitHub Releases, or add the repository to Obtainium for automatic updates.</p></details><details><summary>Does my data leave the phone?</summary><p>No. Text recognition runs on the phone, and the app has no internet permission, so it cannot upload anything.</p></details></section>
 
 </main>
-<footer><p>FitShare is free software under GPL-3.0. Not affiliated with Gadgetbridge, Strava, Instagram or Meta.</p><p><a href="https://github.com/BrickyStudios/FitShare">Source code</a> · <a href="https://github.com/BrickyStudios/FitShare/blob/main/LICENSE">GPL-3.0</a> · <a href="sitemap.xml">Sitemap</a></p></footer>
+<footer><p>FitShare is free software under GPL-3.0. Not affiliated with Gadgetbridge, Xiaomi, Garmin, Strava, Instagram or Meta.</p><p><a href="https://github.com/BrickyStudios/FitShare">Source code</a> · <a href="https://github.com/BrickyStudios/FitShare/blob/main/LICENSE">GPL-3.0</a> · <a href="sitemap.xml">Sitemap</a></p></footer>
 </body>
 </html>

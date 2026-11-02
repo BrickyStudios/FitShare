@@ -21,7 +21,7 @@ object RouteParser {
     fun looksLikeRoute(bytes: ByteArray): Boolean {
         if (isZip(bytes)) return true
         val head = String(bytes, 0, minOf(bytes.size, 4096))
-        return "<gpx" in head || "<kml" in head
+        return "<gpx" in head || "<kml" in head || "<TrainingCenterDatabase" in head
     }
 
     fun parse(bytes: ByteArray): Route? {
@@ -29,6 +29,7 @@ object RouteParser {
         return when {
             "<kml" in text -> parseKml(text)
             "<gpx" in text -> parseGpx(text)
+            "<TrainingCenterDatabase" in text -> parseTcx(text)
             else -> null
         }
     }
@@ -94,6 +95,29 @@ object RouteParser {
                 else Pt(lat, lon,
                     eleRegex.find(inner)?.groupValues?.get(1)?.trim()?.toDoubleOrNull(),
                     timeRegex.find(inner)?.groupValues?.get(1)?.let(::parseTime))
+            }.toList()
+        }.filter { it.isNotEmpty() }.toList()
+        return build(segments)
+    }
+
+    // TCX (Garmin, Huawei, Polar, Zepp exports): one <Track> per segment, points without a position are skipped.
+    private val tcxTrackRegex = Regex("<Track>(.*?)</Track>", RegexOption.DOT_MATCHES_ALL)
+    private val tcxPtRegex = Regex("<Trackpoint>(.*?)</Trackpoint>", RegexOption.DOT_MATCHES_ALL)
+    private val tcxLatRegex = Regex("<LatitudeDegrees>(.*?)</LatitudeDegrees>")
+    private val tcxLonRegex = Regex("<LongitudeDegrees>(.*?)</LongitudeDegrees>")
+    private val tcxEleRegex = Regex("<AltitudeMeters>(.*?)</AltitudeMeters>")
+    private val tcxTimeRegex = Regex("<Time>(.*?)</Time>")
+
+    fun parseTcx(tcx: String): Route? {
+        val segments = tcxTrackRegex.findAll(tcx).map { track ->
+            tcxPtRegex.findAll(track.groupValues[1]).mapNotNull { m ->
+                val body = m.groupValues[1]
+                val lat = tcxLatRegex.find(body)?.groupValues?.get(1)?.trim()?.toDoubleOrNull()
+                val lon = tcxLonRegex.find(body)?.groupValues?.get(1)?.trim()?.toDoubleOrNull()
+                if (lat == null || lon == null) null
+                else Pt(lat, lon,
+                    tcxEleRegex.find(body)?.groupValues?.get(1)?.trim()?.toDoubleOrNull(),
+                    tcxTimeRegex.find(body)?.groupValues?.get(1)?.let(::parseTime))
             }.toList()
         }.filter { it.isNotEmpty() }.toList()
         return build(segments)

@@ -117,7 +117,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         _state.value = UiState(stats = stats, route = route, sportOverride = s.sport, background = bg?.let(Uri::fromFile))
     }
 
-    /** Opens any mix of workout FIT/JSON and route files (GPX/KML/KMZ). Later files replace earlier ones of the same kind. */
+    /** Opens any mix of workout FIT/JSON, share pictures and route files (GPX/TCX/KML/KMZ). Later files replace earlier ones of the same kind. */
     fun open(uris: List<Uri>) {
         if (uris.isEmpty()) return
         // one load at a time, in arrival order: a slow JSON must not overwrite a route that was shared after it
@@ -139,9 +139,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                             }
                             WorkoutParser.looksLikeJson(bytes) ->
                                 stats = WorkoutParser.parse(bytes.decodeToString(), name).getOrThrow()
+                            ShareCardParser.looksLikeImage(bytes) ->
+                                stats = ShareCardParser.parse(ShareCardReader.read(bytes))
+                                    ?: error(tr("Auf dem Bild stehen keine Trainingswerte.", "No workout numbers found in this picture."))
                             RouteParser.looksLikeRoute(bytes) ->
                                 route = RouteParser.parse(bytes) ?: error(tr("Keine GPS-Punkte gefunden.", "No GPS points found."))
-                            else -> error(tr("Unbekanntes Format. Erwartet: FIT, JSON, GPX, KML oder KMZ.", "Unknown format. Expected FIT, JSON, GPX, KML or KMZ."))
+                            else -> error(tr("Unbekanntes Format. Erwartet: Teilen-Bild, FIT, JSON, GPX, TCX, KML oder KMZ.", "Unknown format. Expected a share picture, FIT, JSON, GPX, TCX, KML or KMZ."))
                         }
                     } catch (e: Exception) {
                         problems += "$name: ${e.message ?: tr("konnte nicht gelesen werden", "could not be read")}"

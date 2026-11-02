@@ -11,6 +11,9 @@ on:
         required: true
         default: 'v1.2.0'
 
+permissions:
+  contents: write # create the GitHub release
+
 jobs:
   build:
     runs-on: ubuntu-latest

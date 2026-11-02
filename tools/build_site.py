@@ -9,7 +9,7 @@ from pathlib import Path
 
 BASE = "https://brickystudios.github.io/FitShare/"
 REPO = "https://github.com/BrickyStudios/FitShare"
-APK = REPO + "/releases/latest"
+APK = REPO + "/releases/latest/download/FitShare.apk"  # direct download, same name in every release
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 IMG = BASE + "bilder/social-preview.png"
 

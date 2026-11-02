@@ -19,6 +19,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk"><img alt="Download FitShare.apk" src="https://img.shields.io/badge/Download-FitShare.apk-C6F432?style=for-the-badge&logo=android&logoColor=0C0D0B&labelColor=C6F432&color=0C0D0B"></a>
+</p>
+
+<p align="center">
   <a href="#install">Install</a> ·
   <a href="#how-to-use-it">How to use it</a> ·
   <a href="#build-it-yourself">Build it yourself</a> ·
@@ -64,7 +68,7 @@ The preview shows the overlay on your photo if you pick one. The saved PNG stays
 
 ## Install
 
-Android 8.0 or newer. Download the APK from [Releases](https://github.com/BrickyStudios/FitShare/releases/latest), or add `https://github.com/BrickyStudios/FitShare` to [Obtainium](https://github.com/ImranR98/Obtainium) to get updates.
+Android 8.0 or newer. [Download FitShare.apk](https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk) (always the latest version), or add `https://github.com/BrickyStudios/FitShare` to [Obtainium](https://github.com/ImranR98/Obtainium) to get updates.
 
 ## How to use it
 

@@ -29,6 +29,7 @@ object FitParser {
         var lastTs = 0L
         var session: Map<Int, List<Long?>>? = null
         val points = mutableListOf<RouteParser.Pt>()
+        val heart = mutableListOf<Pair<Long, Int>>()
 
         try {
             while (pos < end) {
@@ -39,7 +40,7 @@ object FitParser {
                     lastTs = (lastTs and 0x1F.toLong().inv()) + offset + if (offset < (lastTs and 0x1F)) 0x20 else 0
                     val (p, msg) = handle(bytes, pos, def)
                     pos = p
-                    collect(def, msg, lastTs, points)?.let { session = it }
+                    collect(def, msg, lastTs, points, heart)?.let { session = it }
                     continue
                 }
                 val local = h and 0x0F
@@ -65,7 +66,7 @@ object FitParser {
                     val (p, msg) = handle(bytes, pos, def)
                     pos = p
                     msg[253]?.firstOrNull()?.let { lastTs = it }
-                    collect(def, msg, lastTs, points)?.let { session = it }
+                    collect(def, msg, lastTs, points, heart)?.let { session = it }
                 }
             }
         } catch (e: IndexOutOfBoundsException) {
@@ -105,7 +106,8 @@ object FitParser {
                 strokes = if (swim) (v(10) ?: 0L).toInt() else 0,
                 hrZoneSeconds = if (zones.sum() > 0) zones else emptyList(),
                 sport = sport,
-                elevationGainMeters = (v(22) ?: 0L).toDouble()
+                elevationGainMeters = (v(22) ?: 0L).toDouble(),
+                hrCurve = resample(heart)
             ),
             route
         )
@@ -128,9 +130,10 @@ object FitParser {
         return (pos + def.devBytes) to msg
     }
 
-    private fun collect(def: Def, msg: Map<Int, List<Long?>>, ts: Long, points: MutableList<RouteParser.Pt>): Map<Int, List<Long?>>? {
+    private fun collect(def: Def, msg: Map<Int, List<Long?>>, ts: Long, points: MutableList<RouteParser.Pt>, heart: MutableList<Pair<Long, Int>>): Map<Int, List<Long?>>? {
         if (def.global == 18) return msg
         if (def.global == 20) {
+            msg[3]?.firstOrNull()?.let { hr -> if (hr in 30..250) heart += (msg[253]?.firstOrNull() ?: ts) to hr.toInt() }
             val lat = msg[0]?.firstOrNull(); val lon = msg[1]?.firstOrNull()
             if (lat != null && lon != null) {
                 val semi = 180.0 / 2.0.pow(31)
@@ -140,6 +143,19 @@ object FitParser {
             }
         }
         return null
+    }
+
+    /** Heart rate averaged into [samples] equal time slices; empty slices take the previous value. */
+    internal fun resample(heart: List<Pair<Long, Int>>, samples: Int = 120): List<Double> {
+        if (heart.size < 10) return emptyList()
+        val t0 = heart.first().first; val span = (heart.last().first - t0).coerceAtLeast(1)
+        val sum = DoubleArray(samples); val n = IntArray(samples)
+        for ((t, hr) in heart) {
+            val i = ((t - t0) * samples / (span + 1)).toInt().coerceIn(0, samples - 1)
+            sum[i] += hr.toDouble(); n[i]++
+        }
+        var last = heart.first().second.toDouble()
+        return List(samples) { i -> if (n[i] > 0) (sum[i] / n[i]).also { last = it } else last }
     }
 
     // byte size per FIT base type number (low 5 bits)

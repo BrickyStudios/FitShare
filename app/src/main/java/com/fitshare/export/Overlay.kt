@@ -55,6 +55,8 @@ data class OverlayOptions(
     val showRoute: Boolean = true,
     val showProfile: Boolean = false,
     val showZones: Boolean = false,
+    val showHeart: Boolean = false,
+    val showSplits: Boolean = false,
     val showDate: Boolean = false,
     val showBrand: Boolean = true
 )
@@ -78,6 +80,8 @@ object OverlayRenderer {
         val route = workout.route?.takeIf { o.showRoute }
         val profile = workout.route?.profile.orEmpty().takeIf { o.showProfile && it.size > 1 }
         val zones = workout.stats.hrZoneSeconds.takeIf { o.showZones && it.sum() > 0 }
+        val heart = workout.stats.hrCurve.takeIf { o.showHeart && it.size > 1 }
+        val splits = workout.route?.splitSeconds.orEmpty().takeIf { o.showSplits && it.size >= 2 }
         val shadow = o.layout != OverlayLayout.CARD // the card itself gives contrast
 
         fun paint(tf: Typeface, size: Float, color: Int = ink, tracking: Float = 0f, align: Paint.Align = Paint.Align.CENTER) =
@@ -108,17 +112,16 @@ object OverlayRenderer {
             return Block(rh) { c, y -> StoryRenderer.drawRoute(c, r, RectF(cx - rw / 2, y, cx + rw / 2, y + rh), StoryStyle.OVERLAY, pal, ink) }
         }
 
-        fun profileBlock(): Block? {
-            val pts = profile ?: return null
+        // filled line chart under a label row; shared by elevation and heart rate
+        fun curveBlock(title: String, rightText: String?, pts: List<Double>, minSpan: Double): Block {
             val label = paint(text(700), 26f, alpha(ink, 0.85f), 0.14f, Paint.Align.LEFT)
-            val gain = workout.availableStats().firstOrNull { it.key == StatKey.ELEVATION }
             val right = paint(text(700), 26f, ink, 0.08f, Paint.Align.RIGHT)
             val h = 150f
             return Block(44f + h) { c, y ->
-                c.drawText(tr("HÖHENPROFIL", "ELEVATION"), left, y + 26f, label)
-                gain?.let { c.drawText("+${it.value} ${it.unit}", left + cw, y + 26f, right) }
+                c.drawText(title, left, y + 26f, label)
+                rightText?.let { c.drawText(it, left + cw, y + 26f, right) }
                 val top = y + 44f
-                val min = pts.min(); val span = (pts.max() - min).coerceAtLeast(10.0)
+                val min = pts.min(); val span = (pts.max() - min).coerceAtLeast(minSpan)
                 val path = Path()
                 pts.forEachIndexed { i, e ->
                     val x = left + cw * i / (pts.size - 1)
@@ -133,6 +136,45 @@ object OverlayRenderer {
                     style = Paint.Style.STROKE; strokeWidth = 5f; color = ink; strokeJoin = Paint.Join.ROUND
                     if (shadow) setShadowLayer(8f, 0f, 2f, shade)
                 })
+            }
+        }
+
+        fun profileBlock(): Block? {
+            val pts = profile ?: return null
+            val gain = workout.availableStats().firstOrNull { it.key == StatKey.ELEVATION }
+            return curveBlock(tr("HÖHENPROFIL", "ELEVATION"), gain?.let { "+${it.value} ${it.unit}" }, pts, 10.0)
+        }
+
+        fun heartBlock(): Block? {
+            val pts = heart ?: return null
+            val s = workout.stats
+            val right = if (s.averageHR > 0) "Ø ${s.averageHR}" + (if (s.maxHR > 0) " · MAX ${s.maxHR}" else "") + " BPM" else null
+            return curveBlock(tr("PULS", "HEART RATE"), right, pts, 20.0)
+        }
+
+        // one bar per km, taller = faster; the fastest km in full ink
+        fun splitsBlock(): Block? {
+            val sp = splits ?: return null
+            val label = paint(text(700), 26f, alpha(ink, 0.85f), 0.14f, Paint.Align.LEFT)
+            val right = paint(text(700), 26f, ink, 0.08f, Paint.Align.RIGHT)
+            val best = sp.indices.minBy { sp[it] }
+            val h = 120f
+            return Block(44f + h) { c, y ->
+                c.drawText(tr("KM-SPLITS", "KM SPLITS"), left, y + 26f, label)
+                c.drawText(tr("SCHNELLSTER KM ", "FASTEST KM ") + "${best + 1} · ${formatSplit(sp[best])}", left + cw, y + 26f, right)
+                val slowest = sp.max().toFloat(); val fastest = sp.min().toFloat()
+                val gap = if (sp.size > 40) 2f else 6f
+                val bw = (cw - gap * (sp.size - 1)) / sp.size
+                val p = Paint(Paint.ANTI_ALIAS_FLAG)
+                if (shadow) p.setShadowLayer(6f, 0f, 2f, shade)
+                sp.forEachIndexed { i, t ->
+                    // speed relative to the range, never shorter than a quarter so slow kms stay visible
+                    val k = if (slowest > fastest) (slowest - t) / (slowest - fastest) else 1f
+                    val bh = h * (0.25f + 0.75f * k)
+                    p.color = if (i == best) ink else alpha(ink, 0.5f)
+                    val x = left + i * (bw + gap)
+                    c.drawRoundRect(x, y + 44f + h - bh, x + bw, y + 44f + h, minOf(6f, bw / 2), minOf(6f, bw / 2), p)
+                }
             }
         }
 
@@ -249,6 +291,8 @@ object OverlayRenderer {
             }
         }
         profileBlock()?.let(blocks::add)
+        heartBlock()?.let(blocks::add)
+        splitsBlock()?.let(blocks::add)
         zonesBlock()?.let(blocks::add)
         brandBlock()?.let(blocks::add)
 
@@ -274,6 +318,8 @@ object OverlayRenderer {
         for (b in blocks) { b.draw(c, y); y += b.height + GAP }
         return bmp
     }
+
+    private fun formatSplit(sec: Int) = "%d:%02d".format(sec / 60, sec % 60)
 
     /** Size of the box the route needs inside maxW × maxH, keeping its real proportions. */
     private fun fitRouteBox(route: Route, maxW: Float, maxH: Float): Pair<Float, Float>? {

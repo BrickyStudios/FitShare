@@ -42,8 +42,14 @@ enum class StoryStyle(private val de: String, private val en: String) {
     val label: String get() = tr(de, en)
 }
 
+/** Full stories come as a 9:16 story or a 4:5 feed post. */
+enum class StoryFormat(val label: String, val height: Float) {
+    STORY("9:16", 1920f),
+    FEED("4:5", 1350f)
+}
+
 /**
- * Draws the 1080×1920 story. The editor preview calls this too (at a smaller scale),
+ * Draws the 1080×1920 story (or 1080×1350 feed post). The editor preview calls this too (at a smaller scale),
  * so what you see is exactly what gets shared.
  */
 object StoryRenderer {
@@ -68,10 +74,12 @@ object StoryRenderer {
         style: StoryStyle,
         background: Bitmap?,
         scale: Float = 1f,
-        overlay: OverlayOptions = OverlayOptions()
+        overlay: OverlayOptions = OverlayOptions(),
+        format: StoryFormat = StoryFormat.STORY
     ): Bitmap {
+        val h = format.height
         if (style == StoryStyle.OVERLAY) return OverlayRenderer.render(context, workout, overlay, scale)
-        val bmp = Bitmap.createBitmap((W * scale).roundToInt(), (H * scale).roundToInt(), Bitmap.Config.ARGB_8888)
+        val bmp = Bitmap.createBitmap((W * scale).roundToInt(), (h * scale).roundToInt(), Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         c.scale(scale, scale)
         val accent = workout.sport.accent
@@ -80,58 +88,58 @@ object StoryRenderer {
             StoryStyle.BIB -> Palette(INK, alpha(INK, 0.6f), alpha(INK, 0.2f), INK, false)
             StoryStyle.OVERLAY -> error("drawn by renderOverlay")
         }
-        drawBackground(c, style, accent, background)
-        drawContent(c, context, workout, style, pal)
+        drawBackground(c, style, accent, background, h)
+        drawContent(c, context, workout, style, pal, h)
         return bmp
     }
 
     // ---------------------------------------------------------------- background
 
-    private fun drawBackground(c: Canvas, style: StoryStyle, accent: Int, photo: Bitmap?) {
+    private fun drawBackground(c: Canvas, style: StoryStyle, accent: Int, photo: Bitmap?, h: Float) {
         when (style) {
             StoryStyle.NIGHT -> {
                 if (photo != null) {
-                    drawCropped(c, photo)
-                    c.drawRect(0f, 0f, W, H, Paint().apply {
-                        shader = LinearGradient(0f, 0f, 0f, H,
+                    drawCropped(c, photo, h)
+                    c.drawRect(0f, 0f, W, h, Paint().apply {
+                        shader = LinearGradient(0f, 0f, 0f, h,
                             intArrayOf(alpha(NIGHT, 0.35f), alpha(NIGHT, 0.55f), alpha(NIGHT, 0.94f)),
                             floatArrayOf(0f, 0.35f, 0.7f), Shader.TileMode.CLAMP)
                     })
                 } else {
                     c.drawColor(NIGHT)
-                    c.drawRect(0f, 0f, W, H, Paint().apply {
-                        shader = RadialGradient(W * 0.92f, H * 0.12f, 1150f,
+                    c.drawRect(0f, 0f, W, h, Paint().apply {
+                        shader = RadialGradient(W * 0.92f, h * 0.12f, 1150f,
                             alpha(accent, 0.34f), Color.TRANSPARENT, Shader.TileMode.CLAMP)
                     })
-                    c.drawRect(0f, 0f, W, H, Paint().apply {
-                        shader = RadialGradient(0f, H * 0.95f, 900f,
+                    c.drawRect(0f, 0f, W, h, Paint().apply {
+                        shader = RadialGradient(0f, h * 0.95f, 900f,
                             alpha(accent, 0.12f), Color.TRANSPARENT, Shader.TileMode.CLAMP)
                     })
                 }
-                grain(c, Color.WHITE, 0.05f)
+                grain(c, Color.WHITE, 0.05f, h)
             }
             StoryStyle.BIB -> {
                 c.drawColor(PAPER)
                 if (photo != null) {
-                    drawCropped(c, photo)
+                    drawCropped(c, photo, h)
                     c.drawColor(alpha(PAPER, 0.82f))
                 }
-                grain(c, INK, 0.05f)
+                grain(c, INK, 0.05f, h)
             }
             StoryStyle.OVERLAY -> Unit
         }
     }
 
-    private fun grain(c: Canvas, color: Int, strength: Float) {
+    private fun grain(c: Canvas, color: Int, strength: Float, h: Float) {
         val rnd = Random(7)
         val p = Paint().apply { this.color = alpha(color, strength); strokeWidth = 2.2f }
-        val pts = FloatArray(18000) { if (it % 2 == 0) rnd.nextFloat() * W else rnd.nextFloat() * H }
+        val pts = FloatArray(18000) { if (it % 2 == 0) rnd.nextFloat() * W else rnd.nextFloat() * h }
         c.drawPoints(pts, p)
     }
 
-    private fun drawCropped(c: Canvas, src: Bitmap) {
+    private fun drawCropped(c: Canvas, src: Bitmap, h: Float) {
         val srcAspect = src.width.toFloat() / src.height
-        val dstAspect = W / H
+        val dstAspect = W / h
         val r = if (srcAspect > dstAspect) {
             val w = (src.height * dstAspect).toInt(); val x = (src.width - w) / 2
             Rect(x, 0, x + w, src.height)
@@ -139,12 +147,12 @@ object StoryRenderer {
             val h = (src.width / dstAspect).toInt(); val y = (src.height - h) / 2
             Rect(0, y, src.width, y + h)
         }
-        c.drawBitmap(src, r, RectF(0f, 0f, W, H), Paint(Paint.FILTER_BITMAP_FLAG))
+        c.drawBitmap(src, r, RectF(0f, 0f, W, h), Paint(Paint.FILTER_BITMAP_FLAG))
     }
 
     // ---------------------------------------------------------------- content
 
-    private fun drawContent(c: Canvas, ctx: Context, w: Workout, style: StoryStyle, pal: Palette) {
+    private fun drawContent(c: Canvas, ctx: Context, w: Workout, style: StoryStyle, pal: Palette, h: Float) {
         val accent = w.sport.accent
         val content = w.storyContent()
         val display = { weight: Int -> Fonts.display(ctx, weight) }
@@ -156,10 +164,12 @@ object StoryRenderer {
                 if (pal.shadow) setShadowLayer(14f, 0f, 3f, 0x99000000.toInt())
             }
 
+        // the 4:5 post is 570 px shorter: smaller title, one stat row, zones only without a route
+        val feed = h < 1600f
         // --- header: wordmark + start time, sport title, date
-        val headerBase = 150f
+        val headerBase = if (feed) 110f else 150f
         val title = w.sport.label.uppercase(Locale.getDefault())
-        val titlePaint = paint(display(900), 210f, if (style == StoryStyle.NIGHT) accent else pal.fg, -0.01f)
+        val titlePaint = paint(display(900), if (feed) 150f else 210f, if (style == StoryStyle.NIGHT) accent else pal.fg, -0.01f)
         fitWidth(titlePaint, title, W - 2 * M)
         val titleBase = headerBase + 40f + titlePaint.textSize * 0.78f
         val datePaint = paint(text(600), 32f, if (style == StoryStyle.BIB) alpha(INK, 0.72f) else pal.muted, 0.06f)
@@ -182,7 +192,7 @@ object StoryRenderer {
         w.startMillis?.let { c.drawText(formatStoryDate(it), M, dateBase, datePaint) }
 
         // --- footer + perforation (bottom-up layout from here)
-        val footerBase = H - 96f
+        val footerBase = h - 96f
         val footer = paint(text(700), 24f, pal.muted, 0.24f)
         c.drawText("FITSHARE · GADGETBRIDGE", M, footerBase, footer)
         val perfY = footerBase - 66f
@@ -192,9 +202,9 @@ object StoryRenderer {
         })
 
         // --- stat table: 3 columns, hairlines like a race ticket
-        val cells = content.cells
+        val cells = if (feed) content.cells.take(3) else content.cells
         val rows = (cells.size + 2) / 3
-        val rowH = 172f
+        val rowH = if (feed) 150f else 172f
         val gridBottom = perfY - 46f
         val gridTop = gridBottom - rows * rowH
         val linePaint = Paint().apply { color = pal.line; strokeWidth = 2f }
@@ -207,19 +217,20 @@ object StoryRenderer {
             if (col > 0) c.drawLine(M + col * colW, top + 26f, M + col * colW, top + rowH - 14f, linePaint)
             val x = M + col * colW + if (col > 0) 30f else 0f
             val maxW = colW - if (col > 0) 44f else 14f
-            c.drawText(stat.label.uppercase(Locale.getDefault()), x, top + 56f, label)
-            val value = paint(display(800), 96f, pal.fg)
+            c.drawText(stat.label.uppercase(Locale.getDefault()), x, top + if (feed) 44f else 56f, label)
+            val value = paint(display(800), if (feed) 84f else 96f, pal.fg)
             val unit = paint(text(700), 26f, pal.muted, 0.08f)
             val unitW = if (stat.unit.isEmpty()) 0f else unit.measureText(stat.unit) + 10f
             fitWidth(value, stat.value, maxW - unitW)
-            c.drawText(stat.value, x, top + 150f, value)
-            if (stat.unit.isNotEmpty()) c.drawText(stat.unit, x + value.measureText(stat.value) + 10f, top + 150f, unit)
+            val base = top + rowH - 22f
+            c.drawText(stat.value, x, base, value)
+            if (stat.unit.isNotEmpty()) c.drawText(stat.unit, x + value.measureText(stat.value) + 10f, base, unit)
         }
 
         // --- heart-rate zones
         var heroLimit = gridTop - 64f
         val zones = w.stats.hrZoneSeconds
-        if (zones.sum() > 0) {
+        if (zones.sum() > 0 && !(feed && w.route != null)) {
             val barTop = gridTop - 70f
             val labelBase = barTop - 26f
             val total = zones.sum()
@@ -244,7 +255,7 @@ object StoryRenderer {
         // --- hero number
         val hero = content.hero
         val hasRoute = w.route != null
-        val heroPaint = paint(display(900), if (hasRoute) 330f else 460f, pal.fg, -0.02f)
+        val heroPaint = paint(display(900), (if (hasRoute) 330f else 460f) * if (feed) 0.6f else 1f, pal.fg, -0.02f)
         val unitPaint = paint(display(800), heroPaint.textSize * 0.34f, if (style == StoryStyle.BIB) INK else accent, 0.02f)
         val unitGap = 18f
         val totalW = { heroPaint.measureText(hero.value) + if (hero.unit.isEmpty()) 0f else unitGap + unitPaint.measureText(hero.unit) }

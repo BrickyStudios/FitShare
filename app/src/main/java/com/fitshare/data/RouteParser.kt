@@ -6,6 +6,7 @@ import java.util.zip.ZipInputStream
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -126,8 +127,30 @@ object RouteParser {
             distanceMeters = distance,
             elevationGainMeters = gain,
             startMillis = segments.firstNotNullOfOrNull { seg -> seg.firstNotNullOfOrNull { it.time } },
-            movingSeconds = (moving / 1000).toInt()
+            movingSeconds = (moving / 1000).toInt(),
+            splitSeconds = splits(segments)
         )
+    }
+
+    /** Time per full kilometre. Pauses between segments don't count, like moving time. */
+    internal fun splits(segments: List<List<Pt>>): List<Int> {
+        val out = mutableListOf<Int>()
+        var dist = 0.0; var moving = 0.0; var lastMark = 0.0
+        for (seg in segments) for (i in 1 until seg.size) {
+            val a = seg[i - 1]; val b = seg[i]
+            val ta = a.time ?: return emptyList(); val tb = b.time ?: return emptyList()
+            val d = haversine(a, b); val dt = (tb - ta) / 1000.0
+            // a step can cross a km mark; interpolate the time at the mark
+            while (d > 0 && dist + d >= (out.size + 1) * 1000.0) {
+                val f = ((out.size + 1) * 1000.0 - dist) / d
+                val at = moving + dt * f
+                out += (at - lastMark).roundToInt()
+                lastMark = at
+                if (out.size > 2000) return out
+            }
+            dist += d; moving += dt
+        }
+        return out
     }
 
     /** Elevation over distance, resampled to [samples] evenly spaced points for drawing. */

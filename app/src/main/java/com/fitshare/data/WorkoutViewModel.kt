@@ -111,7 +111,10 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val bg = s.background?.let(::File)?.takeIf { it.exists() }
         @Suppress("SENSELESS_COMPARISON") // sessions saved before the elevation profile existed
         val route = s.route?.let { if (it.profile == null) it.copy(profile = emptyList()) else it }
-        _state.value = UiState(stats = s.stats, route = route, sportOverride = s.sport, background = bg?.let(Uri::fromFile))
+            ?.let { if (it.splitSeconds == null) it.copy(splitSeconds = emptyList()) else it }
+        @Suppress("SENSELESS_COMPARISON")
+        val stats = s.stats?.let { if (it.hrCurve == null || it.hrZoneSeconds == null) it.copy(hrCurve = it.hrCurve ?: emptyList(), hrZoneSeconds = it.hrZoneSeconds ?: emptyList()) else it }
+        _state.value = UiState(stats = stats, route = route, sportOverride = s.sport, background = bg?.let(Uri::fromFile))
     }
 
     /** Opens any mix of workout FIT/JSON and route files (GPX/KML/KMZ). Later files replace earlier ones of the same kind. */

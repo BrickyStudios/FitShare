@@ -76,6 +76,26 @@ class FitParserTest {
         assertEquals(321.0, w.elevationGainMeters, 0.01) // watch ascent beats GPS
     }
 
+    @Test fun kmSplitsInterpolateAndSkipPauses() {
+        // straight north: 0.009° lat ≈ 1000.8 m; 4 min per point, then a 30-min pause, then 5 min
+        val step = 0.009
+        val seg1 = List(3) { RouteParser.Pt(48.0 + it * step, 9.0, null, it * 240_000L) }
+        val seg2 = listOf(RouteParser.Pt(48.0 + 2 * step, 9.0, null, 2_280_000L), RouteParser.Pt(48.0 + 3 * step, 9.0, null, 2_580_000L))
+        val sp = RouteParser.splits(listOf(seg1, seg2))
+        assertEquals(3, sp.size)
+        assertTrue(sp.toString(), sp[0] in 239..240 && sp[1] in 239..240)
+        assertTrue(sp.toString(), sp[2] in 299..301) // the pause between segments doesn't count
+        assertTrue(RouteParser.splits(listOf(listOf(RouteParser.Pt(48.0, 9.0, null, null), RouteParser.Pt(48.1, 9.0, null, null)))).isEmpty())
+    }
+
+    @Test fun heartCurveResamples() {
+        val hr = List(600) { it.toLong() to (100 + it / 10) }
+        val c = FitParser.resample(hr, 60)
+        assertEquals(60, c.size)
+        assertTrue(c.first() < 102 && c.last() > 158)
+        assertTrue(FitParser.resample(hr.take(5)).isEmpty())
+    }
+
     @Test fun genericSportFallsBackToSpeed() {
         val s = FitParser.parse(ride(0)).stats
         assertNull(s.sport)
@@ -98,6 +118,7 @@ class FitParserTest {
             val s = FitParser.parse(f.readBytes()).stats
             assertNotNull(f.name, s.startMillis)
             assertTrue(f.name, s.activeSeconds > 0)
+            assertTrue(f.name, s.hrCurve.isEmpty() || s.hrCurve.size == 120) // some exports carry only the summary, no records
             println("${f.parentFile.name}: ${s.activeSeconds / 60} min, ${s.averageHR}/${s.maxHR} bpm, ${s.calories} kcal, zones ${s.hrZoneSeconds.map { it.toInt() }}")
         }
     }

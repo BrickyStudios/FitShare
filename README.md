@@ -46,12 +46,12 @@ Gadgetbridge records workouts from Mi Band, Amazfit and other watches without th
 | Layout | Stack (stats above the route, like Strava), Row, Card (translucent panel), Map (big route, one line of stats) |
 | Stats | Any of distance, time, speed or pace, elevation gain, average and max heart rate, calories, steps, laps, SWOLF, strokes, stroke type. Tap order sets the order; "Auto" picks by sport |
 | Colour | White, black, or the sport's colour |
-| Extras | Route, elevation profile, heart rate zones, date, logo |
+| Extras | Route, elevation profile, heart rate graph (from FIT), km splits as bars with the fastest km marked, heart rate zones, date, logo |
 | Looks | Save the current setup under a name and put it on the next workout with one tap. Every saved or shared PNG also lands in a history of the last eight setups. Long-press a saved look to delete it |
 
 The preview shows the overlay on your photo if you pick one. The saved PNG stays transparent.
 
-**Full stories (1080 × 1920).** Two finished designs, Night and Race bib, for when you want the image as the whole story.
+**Full stories.** Two finished designs, Night and Race bib, for when you want the image as the whole story (1080 × 1920) or as a feed post (4:5, 1080 × 1350).
 
 **Data.** Reads Gadgetbridge workouts as FIT or JSON, and routes as GPX, KML or KMZ (OpenTracks KMZ works as is). A FIT file also contains the sport, the heart rate zones and, if the watch or phone recorded GPS, the route. If the export lacks distance or time, FitShare computes them from the route, plus elevation gain. Without a sport in the file it guesses from the speed; you can change it.
 

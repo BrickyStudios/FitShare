@@ -10,7 +10,9 @@ data class Route(
     val startMillis: Long?,
     val movingSeconds: Int,
     /** Elevation in metres, resampled to evenly spaced distance steps; empty if the file has none. */
-    val profile: List<Double> = emptyList()
+    val profile: List<Double> = emptyList(),
+    /** Seconds for each full kilometre, in order; empty without timestamps. */
+    val splitSeconds: List<Int> = emptyList()
 ) {
     val pointCount: Int get() = segments.sumOf { it.size }
 }
@@ -33,7 +35,9 @@ data class WorkoutStats(
     /** Only FIT files say which sport it was; JSON leaves it null. */
     val sport: Sport? = null,
     /** Barometric climb from the watch (FIT); 0 if unknown. */
-    val elevationGainMeters: Double = 0.0
+    val elevationGainMeters: Double = 0.0,
+    /** Heart rate over the workout, resampled to evenly spaced points (FIT only). */
+    val hrCurve: List<Double> = emptyList()
 ) {
     val hasSwimData: Boolean get() = laps > 0 || strokes > 0 || swolf > 0 || swimStyle != null
 }

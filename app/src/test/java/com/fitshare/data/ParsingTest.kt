@@ -156,7 +156,8 @@ class ParsingTest {
         dir.walk().filter { it.extension == "kmz" }.forEach { f ->
             val r = RouteParser.parse(f.readBytes())
             assertNotNull(f.name, r)
-            println("${f.parentFile.name}: ${"%.2f".format(r!!.distanceMeters / 1000)} km, ${r.elevationGainMeters.toInt()} hm, ${r.pointCount} pts, ${r.movingSeconds / 60} min")
+            assertTrue(f.name, r!!.splitSeconds.size >= (r.distanceMeters / 1000).toInt() - 1)
+            println("${f.parentFile.name}: ${r.splitSeconds.size} splits, ${"%.2f".format(r.distanceMeters / 1000)} km, ${r.elevationGainMeters.toInt()} hm, ${r.pointCount} pts, ${r.movingSeconds / 60} min")
         }
     }
 }

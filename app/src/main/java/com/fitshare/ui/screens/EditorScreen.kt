@@ -81,6 +81,7 @@ import com.fitshare.export.InkColor
 import com.fitshare.export.OverlayLayout
 import com.fitshare.export.OverlayOptions
 import com.fitshare.export.ShareHelper
+import com.fitshare.export.StoryFormat
 import com.fitshare.export.StoryRenderer
 import com.fitshare.export.StoryStyle
 import com.fitshare.ui.theme.BigButton
@@ -128,6 +129,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
     val pager = rememberPagerState(initialPage = prefs.getInt("style", 0).coerceIn(0, StoryStyle.entries.lastIndex)) { StoryStyle.entries.size }
     LaunchedEffect(pager.settledPage) { prefs.edit().putInt("style", pager.settledPage).apply() }
     val style = StoryStyle.entries[pager.currentPage]
+    var format by remember { mutableStateOf(StoryFormat.entries.getOrElse(prefs.getInt("format", 0)) { StoryFormat.STORY }) }
     var busy by remember { mutableStateOf(false) }
     val looks by vm.looks.collectAsState()
     // with saved looks, a new workout starts on them: one tap and it looks like last time
@@ -135,7 +137,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
     var naming by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Look?>(null) }
 
-    fun renderFull() = StoryRenderer.render(ctx, workout, style, background, overlay = overlay)
+    fun renderFull() = StoryRenderer.render(ctx, workout, style, background, overlay = overlay, format = format)
 
     fun save() = scope.launch {
         busy = true
@@ -183,14 +185,14 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         ) { page ->
             val pageStyle = StoryStyle.entries[page]
             val isOverlay = pageStyle == StoryStyle.OVERLAY
-            val preview by produceState<Bitmap?>(null, workout, pageStyle, background, overlay) {
-                value = withContext(Dispatchers.Default) { StoryRenderer.render(ctx, workout, pageStyle, background, 0.5f, overlay) }
+            val preview by produceState<Bitmap?>(null, workout, pageStyle, background, overlay, format) {
+                value = withContext(Dispatchers.Default) { StoryRenderer.render(ctx, workout, pageStyle, background, 0.5f, overlay, format) }
             }
+            val aspect = if (isOverlay) 9f / 16f else StoryRenderer.W / format.height
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Box(
                     Modifier
-                        .fillMaxHeight()
-                        .aspectRatio(9f / 16f, matchHeightConstraintsFirst = true)
+                        .aspectRatio(aspect) // fills width or height, whichever runs out first
                         .graphicsLayer {
                             val off = ((pager.currentPage - page) + pager.currentPageOffsetFraction).absoluteValue.coerceIn(0f, 1f)
                             val s = 1f - 0.08f * off
@@ -270,14 +272,22 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         val r = workout.route
                         if (r != null) Chip(tr("Route", "Route"), overlay.showRoute, accent) { vm.updateOverlay { it.copy(showRoute = !it.showRoute) } }
                         if (r != null && r.profile.size > 1) Chip(tr("Höhenprofil", "Elevation"), overlay.showProfile, accent) { vm.updateOverlay { it.copy(showProfile = !it.showProfile) } }
+                        if (workout.stats.hrCurve.size > 1) Chip(tr("Pulskurve", "HR graph"), overlay.showHeart, accent) { vm.updateOverlay { it.copy(showHeart = !it.showHeart) } }
+                        if ((r?.splitSeconds?.size ?: 0) >= 2) Chip(tr("Km-Splits", "Km splits"), overlay.showSplits, accent) { vm.updateOverlay { it.copy(showSplits = !it.showSplits) } }
                         if (workout.stats.hrZoneSeconds.sum() > 0) Chip(tr("Pulszonen", "HR zones"), overlay.showZones, accent) { vm.updateOverlay { it.copy(showZones = !it.showZones) } }
                         if (workout.startMillis != null) Chip(tr("Datum", "Date"), overlay.showDate, accent) { vm.updateOverlay { it.copy(showDate = !it.showDate) } }
                         Chip("Logo", overlay.showBrand, accent) { vm.updateOverlay { it.copy(showBrand = !it.showBrand) } }
                     }
-                    Section.SPORT -> Sport.entries.forEach { sport ->
-                        Chip(sport.label, sport == workout.sport, Color(sport.accent), dot = Color(sport.accent)) {
-                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                            vm.setSport(sport)
+                    Section.SPORT -> {
+                        // full stories: format first (story or feed post), then the sport
+                        if (style != StoryStyle.OVERLAY) StoryFormat.entries.forEach { f ->
+                            Chip(f.label, format == f, accent) { format = f; prefs.edit().putInt("format", f.ordinal).apply() }
+                        }
+                        Sport.entries.forEach { sport ->
+                            Chip(sport.label, sport == workout.sport, Color(sport.accent), dot = Color(sport.accent)) {
+                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                vm.setSport(sport)
+                            }
                         }
                     }
                 }
@@ -348,6 +358,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         }
         Text(
             if (style == StoryStyle.OVERLAY) tr("Instagram: Story öffnen → Sticker → Foto → PNG wählen", "Instagram: open a story → Stickers → Photo → pick the PNG")
+            else if (format == StoryFormat.FEED) tr("Fertiger Beitrag 1080 × 1350 für den Instagram-Feed", "Finished 1080 × 1350 post for the Instagram feed")
             else tr("Fertige Story 1080 × 1920, als Hintergrund in Instagram", "Finished 1080 × 1920 story, use it as the Instagram background"),
             style = Type.body.copy(fontSize = Type.label.fontSize * 1.1f),
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)

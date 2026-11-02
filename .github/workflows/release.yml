@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Version tag (e.g. v1.1.0)'
+        description: 'Version tag (e.g. v1.2.0)'
         required: true
-        default: 'v1.1.0'
+        default: 'v1.2.0'
 
 jobs:
   build:
@@ -35,16 +35,17 @@ jobs:
           java-version: '17'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.9'
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Decode Keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.jks
 
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest
+
       - name: Build Release APK
-        run: gradle assembleRelease
+        run: ./gradlew assembleRelease
         env:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}

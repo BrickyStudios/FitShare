@@ -1,126 +1,78 @@
 package com.fitshare
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.fitshare.data.WorkoutState
+import androidx.compose.ui.unit.IntOffset
+import androidx.core.content.IntentCompat
 import com.fitshare.data.WorkoutViewModel
-import com.fitshare.export.ShareHelper
-import com.fitshare.export.StoryRenderer
 import com.fitshare.ui.screens.EditorScreen
 import com.fitshare.ui.screens.ImportScreen
 import com.fitshare.ui.theme.FitShareTheme
-import kotlinx.coroutines.launch
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import com.fitshare.ui.theme.Ink
+import com.fitshare.ui.theme.uiSpring
 
 class MainActivity : ComponentActivity() {
+
+    private val vm: WorkoutViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (savedInstanceState == null) handleIntent(intent)
 
         setContent {
             FitShareTheme {
-                val navController = rememberNavController()
-                val workoutViewModel: WorkoutViewModel = viewModel()
-                val context = LocalContext.current
-                val scope = rememberCoroutineScope()
-                val storagePermissionLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestPermission()
-                ) { /* Permission result handled — user can tap share again if denied */ }
-
-                // Handle incoming intent (Gadgetbridge sharing directly to FitShare)
-                LaunchedEffect(Unit) {
-                    handleIncomingIntent(intent, workoutViewModel)
-                }
-
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = "import",
-                        modifier = Modifier.padding(innerPadding)
-                    ) {
-                        composable("import") {
-                            ImportScreen(
-                                viewModel = workoutViewModel,
-                                onWorkoutLoaded = { navController.navigate("editor") }
-                            )
-                        }
-                        composable("editor") {
-                            val state by workoutViewModel.state.collectAsState()
-                            val backgroundUri by workoutViewModel.backgroundUri.collectAsState()
-
-                            if (state !is WorkoutState.Success) {
-                                navController.navigate("import") { popUpTo("import") { inclusive = true } }
-                                return@composable
-                            }
-
-                            EditorScreen(
-                                viewModel = workoutViewModel,
-                                onShare = {
-                                    val workout = (state as WorkoutState.Success).workout
-                                    scope.launch {
-                                        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q &&
-                                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                                context,
-                                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-                                        ) {
-                                            storagePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                            return@launch
-                                        }
-                                        try {
-                                            val bitmap = StoryRenderer.renderToBitmap(
-                                                context, workout, backgroundUri
-                                            )
-                                            ShareHelper.saveBitmapToGallery(context, bitmap)
-                                            val shareUri = ShareHelper.saveBitmapForSharing(context, bitmap)
-                                            if (shareUri != null) {
-                                                ShareHelper.shareImage(
-                                                    context, shareUri,
-                                                    workout.activityType.labelDe
-                                                )
-                                            } else {
-                                                Toast.makeText(context, "Fehler beim Speichern", Toast.LENGTH_SHORT).show()
-                                            }
-                                        } catch (e: Exception) {
-                                            Toast.makeText(context, "Fehler: ${e.message}", Toast.LENGTH_LONG).show()
-                                        }
-                                    }
-                                },
-                                onBack = {
-                                    workoutViewModel.reset()
-                                    navController.navigate("import") { popUpTo("import") { inclusive = true } }
-                                }
-                            )
-                        }
-                    }
+                val state by vm.state.collectAsState()
+                AnimatedContent(
+                    targetState = state.hasData,
+                    modifier = Modifier.fillMaxSize().background(Ink),
+                    transitionSpec = {
+                        // editor comes in from the right and leaves the same way it came
+                        val slide = spring<IntOffset>(stiffness = 400f)
+                        val dir = if (targetState) 1 else -1
+                        (slideInHorizontally(slide) { it / 4 * dir } + fadeIn(uiSpring())) togetherWith
+                            (slideOutHorizontally(slide) { -it / 4 * dir } + fadeOut(uiSpring()))
+                    },
+                    label = "screen"
+                ) { editing ->
+                    if (editing) EditorScreen(state, vm) else ImportScreen(state, vm::open)
                 }
             }
         }
     }
 
-    private fun handleIncomingIntent(intent: Intent?, viewModel: WorkoutViewModel) {
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    /** Files shared from Gadgetbridge / OpenTracks, or opened with "Öffnen mit". */
+    private fun handleIntent(intent: Intent?) {
         intent ?: return
-        val uri = when (intent.action) {
-            Intent.ACTION_VIEW -> intent.data
-            Intent.ACTION_SEND -> intent.getParcelableExtra(Intent.EXTRA_STREAM)
-            else -> null
+        val uris: List<Uri> = when (intent.action) {
+            Intent.ACTION_VIEW -> listOfNotNull(intent.data)
+            Intent.ACTION_SEND -> listOfNotNull(IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java))
+            Intent.ACTION_SEND_MULTIPLE ->
+                IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
+            else -> emptyList()
         }
-        uri?.let { viewModel.loadFromUri(it) }
+        vm.open(uris)
     }
 }

@@ -1,28 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- A start number ("Startnummer"): volt bib with two safety-pin holes and a bold F. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!-- Bold F: vertical bar -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M34,22 L46,22 L46,86 L34,86 Z" />
-    <!-- Bold F: top horizontal bar -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M34,22 L78,22 L78,34 L34,34 Z" />
-    <!-- Bold F: middle horizontal bar -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M34,50 L70,50 L70,62 L34,62 Z" />
-
-    <!-- Wave accent (blue) -->
-    <path
-        android:strokeColor="#2196F3"
-        android:strokeWidth="3.5"
-        android:strokeLineCap="round"
-        android:fillColor="@android:color/transparent"
-        android:pathData="M22,78 Q31,70 40,78 Q49,86 58,78 Q67,70 76,78 Q85,86 94,78" />
+        android:fillColor="#C6F432"
+        android:pathData="M35,32 h38 a5,5 0 0 1 5,5 v34 a5,5 0 0 1 -5,5 h-38 a5,5 0 0 1 -5,-5 v-34 a5,5 0 0 1 5,-5 z" />
+    <path android:fillColor="#0C0D0B" android:pathData="M36,38 m-2.4,0 a2.4,2.4 0 1 0 4.8,0 a2.4,2.4 0 1 0 -4.8,0" />
+    <path android:fillColor="#0C0D0B" android:pathData="M72,38 m-2.4,0 a2.4,2.4 0 1 0 4.8,0 a2.4,2.4 0 1 0 -4.8,0" />
+    <path android:fillColor="#0C0D0B" android:pathData="M45,44 h19 v6 h-12 v5 h10 v6 h-10 v9 h-7 z" />
 </vector>

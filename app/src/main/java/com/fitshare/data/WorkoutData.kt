@@ -1,174 +1,89 @@
 package com.fitshare.data
 
-import androidx.compose.ui.graphics.Color
+data class LatLon(val lat: Double, val lon: Double)
 
-data class WorkoutData(
-    val filename: String = "",
-    val activityType: ActivityType = ActivityType.UNKNOWN,
-    val dateTimeMillis: Long = 0L,
-    // Time
+/** A GPS track from GPX/KML/KMZ. Segments are kept apart so pauses don't draw a jump line. */
+data class Route(
+    val segments: List<List<LatLon>>,
+    val distanceMeters: Double,
+    val elevationGainMeters: Double,
+    val startMillis: Long?,
+    val movingSeconds: Int
+) {
+    val pointCount: Int get() = segments.sumOf { it.size }
+}
+
+/** What a Gadgetbridge workout JSON contains. Missing values are 0 / null. */
+data class WorkoutStats(
+    val startMillis: Long? = null,
     val activeSeconds: Int = 0,
-    // Distance
-    val distanceMeters: Float = 0f,
-    // Calories
+    val distanceMeters: Double = 0.0,
     val calories: Int = 0,
-    // Swimming specific
-    val swimStyle: SwimStyle? = null,
-    val laps: Int = 0,
-    val strokes: Int = 0,
-    val swolfAvg: Int = 0,
-    // Running specific
-    val steps: Int = 0,
-    // Heart rate
     val averageHR: Int = 0,
     val maxHR: Int = 0,
-    // Other
-    val vitalityGain: Float = 0f,
-    val gpsTrack: List<LatLon>? = null
+    val laps: Int = 0,
+    val strokes: Int = 0,
+    val swolf: Int = 0,
+    val steps: Int = 0,
+    val swimStyle: String? = null,
+    /** Seconds in the five Gadgetbridge HR zones (warm-up … extreme), or empty. */
+    val hrZoneSeconds: List<Double> = emptyList()
+) {
+    val hasSwimData: Boolean get() = laps > 0 || strokes > 0 || swolf > 0 || swimStyle != null
+}
+
+enum class Sport(val label: String, val accent: Int) {
+    CYCLING("Radfahren", 0xFFFF5B1F.toInt()),
+    RUNNING("Laufen", 0xFFC6F432.toInt()),
+    SWIMMING("Schwimmen", 0xFF27D3F5.toInt()),
+    WALKING("Wandern", 0xFFFFB423.toInt()),
+    WORKOUT("Training", 0xFFFF4F8B.toInt())
+}
+
+/** Everything the story shows: JSON values, filled up from the route where the JSON has gaps. */
+data class Workout(
+    val sport: Sport,
+    val startMillis: Long?,
+    val activeSeconds: Int,
+    val distanceMeters: Double,
+    val elevationGainMeters: Double,
+    val stats: WorkoutStats,
+    val route: Route?
 )
 
-enum class ActivityType(
-    val labelDe: String,
-    val emoji: String,
-    val accentColor: Color,
-    val gradientStart: Color,
-    val gradientEnd: Color
-) {
-    SWIMMING(
-        labelDe = "Beckenschwimmen",
-        emoji = "🏊",
-        accentColor = Color(0xFF2196F3),
-        gradientStart = Color(0xFF0A1628),
-        gradientEnd = Color(0xFF1A3A5C)
-    ),
-    RUNNING(
-        labelDe = "Laufen",
-        emoji = "🏃",
-        accentColor = Color(0xFF4CAF50),
-        gradientStart = Color(0xFF0A1A0A),
-        gradientEnd = Color(0xFF1A3A1A)
-    ),
-    CYCLING(
-        labelDe = "Radfahren",
-        emoji = "🚴",
-        accentColor = Color(0xFFFF9800),
-        gradientStart = Color(0xFF1A1200),
-        gradientEnd = Color(0xFF3A2A00)
-    ),
-    UNKNOWN(
-        labelDe = "Training",
-        emoji = "💪",
-        accentColor = Color(0xFF9C27B0),
-        gradientStart = Color(0xFF120A1A),
-        gradientEnd = Color(0xFF2A1A3A)
+fun mergeWorkout(stats: WorkoutStats?, route: Route?, sportOverride: Sport?): Workout {
+    val s = stats ?: WorkoutStats()
+    val distance = if (s.distanceMeters > 0) s.distanceMeters else route?.distanceMeters ?: 0.0
+    val seconds = if (s.activeSeconds > 0) s.activeSeconds else route?.movingSeconds ?: 0
+    return Workout(
+        sport = sportOverride ?: guessSport(s, distance, seconds),
+        startMillis = s.startMillis ?: route?.startMillis,
+        activeSeconds = seconds,
+        distanceMeters = distance,
+        elevationGainMeters = route?.elevationGainMeters ?: 0.0,
+        stats = s,
+        route = route
     )
 }
 
-enum class SwimStyle(val labelDe: String) {
-    FREESTYLE("Freistil"),
-    BREASTSTROKE("Brust"),
-    BACKSTROKE("Rücken"),
-    BUTTERFLY("Schmetterling"),
-    MIXED("Gemischt"),
-    UNKNOWN("Unbekannt");
-
-    companion object {
-        fun fromString(value: String): SwimStyle = when (value.lowercase()) {
-            "freestyle" -> FREESTYLE
-            "breaststroke" -> BREASTSTROKE
-            "backstroke" -> BACKSTROKE
-            "butterfly" -> BUTTERFLY
-            "mixed" -> MIXED
-            else -> UNKNOWN
-        }
+/** Gadgetbridge doesn't export the sport, so infer it from what the file contains and the speed. */
+fun guessSport(s: WorkoutStats, distanceMeters: Double, seconds: Int): Sport {
+    if (s.hasSwimData) return Sport.SWIMMING
+    val kmh = if (distanceMeters > 0 && seconds > 0) distanceMeters / seconds * 3.6 else 0.0
+    return when {
+        kmh >= 13.0 -> Sport.CYCLING
+        kmh >= 6.5 -> Sport.RUNNING
+        kmh > 0.0 -> Sport.WALKING
+        s.steps > 0 -> Sport.RUNNING
+        else -> Sport.WORKOUT
     }
 }
 
-fun WorkoutData.formattedTime(): String {
-    val hours = activeSeconds / 3600
-    val minutes = (activeSeconds % 3600) / 60
-    val seconds = activeSeconds % 60
-    return if (hours > 0) {
-        "%02d:%02d:%02d".format(hours, minutes, seconds)
-    } else {
-        "%02d:%02d".format(minutes, seconds)
-    }
-}
-
-fun WorkoutData.formattedDistance(): Pair<String, String> {
-    return if (distanceMeters >= 1000f) {
-        val km = distanceMeters / 1000f
-        if (km == km.toLong().toFloat()) {
-            "%.0f".format(km) to "km"
-        } else {
-            "%.2f".format(km) to "km"
-        }
-    } else {
-        "%.0f".format(distanceMeters) to "m"
-    }
-}
-
-data class LatLon(val lat: Double, val lon: Double)
-
-// Pace in Sekunden pro km (für Laufen)
-fun WorkoutData.paceSecondsPerKm(): Int? {
-    if (activityType != ActivityType.RUNNING) return null
-    if (distanceMeters <= 0f || activeSeconds <= 0) return null
-    val km = distanceMeters / 1000f
-    return (activeSeconds / km).toInt()
-}
-
-// Formatierte Pace als "MM:SS /km"
-fun WorkoutData.paceFormatted(): String? {
-    val secs = paceSecondsPerKm() ?: return null
-    val min = secs / 60
-    val sec = secs % 60
-    return "%d:%02d /km".format(min, sec)
-}
-
-// Geschwindigkeit in km/h (für Radfahren)
-fun WorkoutData.speedKmh(): Float? {
-    if (activityType != ActivityType.CYCLING) return null
-    if (distanceMeters <= 0f || activeSeconds <= 0) return null
-    val km = distanceMeters / 1000f
-    val hours = activeSeconds / 3600f
-    return km / hours
-}
-
-// Formatierte Geschwindigkeit als "XX.X km/h"
-fun WorkoutData.speedFormatted(): String? {
-    val kmh = speedKmh() ?: return null
-    return "%.1f km/h".format(kmh)
-}
-
-// Pace für Schwimmen: Sekunden pro 100m
-fun WorkoutData.swimPaceSeconds(): Int? {
-    if (activityType != ActivityType.SWIMMING) return null
-    if (distanceMeters <= 0f || activeSeconds <= 0) return null
-    val per100m = activeSeconds / (distanceMeters / 100f)
-    return per100m.toInt()
-}
-
-// Formatierte Schwimm-Pace als "MM:SS /100m"
-fun WorkoutData.swimPaceFormatted(): String? {
-    val secs = swimPaceSeconds() ?: return null
-    val min = secs / 60
-    val sec = secs % 60
-    return "%d:%02d /100m".format(min, sec)
-}
-
-// Liefert die Hauptpace/Speed-Anzeige je nach Sportart
-fun WorkoutData.primaryPaceFormatted(): String? = when (activityType) {
-    ActivityType.RUNNING -> paceFormatted()
-    ActivityType.CYCLING -> speedFormatted()
-    ActivityType.SWIMMING -> swimPaceFormatted()
-    else -> null
-}
-
-// Label für die Pace-Anzeige
-fun WorkoutData.primaryPaceLabel(): String = when (activityType) {
-    ActivityType.RUNNING -> "Pace"
-    ActivityType.CYCLING -> "Tempo"
-    ActivityType.SWIMMING -> "Pace/100m"
-    else -> ""
+fun swimStyleLabel(raw: String): String = when (raw.lowercase()) {
+    "freestyle" -> "Kraul"
+    "breaststroke" -> "Brust"
+    "backstroke" -> "Rücken"
+    "butterfly" -> "Delfin"
+    "mixed", "medley" -> "Lagen"
+    else -> raw.replaceFirstChar { it.uppercase() }
 }

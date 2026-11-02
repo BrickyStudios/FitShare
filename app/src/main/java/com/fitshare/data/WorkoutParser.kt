@@ -1,97 +1,59 @@
 package com.fitshare.data
 
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
+import java.time.OffsetDateTime
 
 object WorkoutParser {
 
-    fun parse(jsonString: String, filename: String = ""): Result<WorkoutData> = runCatching {
+    private val ZONE_KEYS = listOf("hrZoneWarmUp", "hrZoneFatBurn", "hrZoneAerobic", "hrZoneAnaerobic", "hrZoneExtreme")
+
+    fun looksLikeJson(bytes: ByteArray): Boolean =
+        bytes.firstOrNull { !it.toInt().toChar().isWhitespace() }?.toInt()?.toChar() == '{'
+
+    fun parse(jsonString: String, filename: String = ""): Result<WorkoutStats> = runCatching {
         val root = JsonParser.parseString(jsonString).asJsonObject
+        val known = listOf("activeSeconds", "distanceMeters", "active_calories", "averageHR", "laps", "steps")
+        require(known.any { root.has(it) }) { "Das sieht nicht nach einem Gadgetbridge-Workout aus." }
 
-        val activeSeconds = root.getFloatValue("activeSeconds").toInt()
-        val distanceMeters = root.getFloatValue("distanceMeters")
-        val calories = root.getFloatValue("active_calories").toInt()
-        val strokes = root.getFloatValue("strokes").toInt()
-        val laps = root.getFloatValue("laps").toInt()
-        val swolfAvg = root.getFloatValue("swolfAvg").toInt()
-        val steps = root.getFloatValue("steps").toInt()
-        val averageHR = root.getFloatValue("averageHR").toInt()
-        val maxHR = root.getFloatValue("maxHR").toInt()
-        val vitalityGain = root.getFloatValue("vitality_gain")
-
-        val swimStyleStr = root.getStringValue("swimStyle")
-        val swimStyle = if (swimStyleStr.isNotEmpty()) SwimStyle.fromString(swimStyleStr) else null
-
-        val activityType = detectActivityType(root, swimStyle)
-        val dateTimeMillis = parseFilenameDate(filename)
-
-        WorkoutData(
-            filename = filename,
-            activityType = activityType,
-            dateTimeMillis = dateTimeMillis,
-            activeSeconds = activeSeconds,
-            distanceMeters = distanceMeters,
-            calories = calories,
-            swimStyle = swimStyle,
-            laps = laps,
-            strokes = strokes,
-            swolfAvg = swolfAvg,
-            steps = steps,
-            averageHR = averageHR,
-            maxHR = maxHR,
-            vitalityGain = vitalityGain
+        val zones = ZONE_KEYS.map { root.num(it) }
+        WorkoutStats(
+            startMillis = parseFilenameDate(filename),
+            activeSeconds = root.num("activeSeconds").toInt(),
+            distanceMeters = root.num("distanceMeters"),
+            calories = root.num("active_calories").toInt(),
+            averageHR = root.num("averageHR").toInt(),
+            maxHR = root.num("maxHR").toInt(),
+            laps = root.num("laps").toInt(),
+            strokes = root.num("strokes").toInt(),
+            swolf = root.num("swolfAvg").toInt(),
+            steps = root.num("steps").toInt(),
+            swimStyle = root.str("swimStyle").takeIf { it.isNotBlank() },
+            hrZoneSeconds = if (zones.sum() > 0) zones else emptyList()
         )
     }
 
-    private fun detectActivityType(root: JsonObject, swimStyle: SwimStyle?): ActivityType {
-        return when {
-            swimStyle != null || root.has("swimStyle") || root.has("laps") || root.has("strokes") ->
-                ActivityType.SWIMMING
-            root.has("steps") && root.getFloatValue("steps") > 0 ->
-                ActivityType.RUNNING
-            root.has("cadence") ->
-                ActivityType.CYCLING
-            else -> ActivityType.UNKNOWN
-        }
-    }
+    private val filenameDate = Regex("(\\d{4}-\\d{2}-\\d{2})T(\\d{2})_(\\d{2})_(\\d{2})([+-]\\d{2})_(\\d{2})")
 
-    // Parse filename like "2026-04-07T13_55_47+02_00.json"
-    fun parseFilenameDate(filename: String): Long {
-        val name = filename.removeSuffix(".json")
-        // Replace underscores used for colons/timezone in filename
-        // Format: 2026-04-07T13_55_47+02_00  →  2026-04-07T13:55:47+02:00
-        val normalized = name
-            .replace(Regex("T(\\d{2})_(\\d{2})_(\\d{2})([+-])(\\d{2})_(\\d{2})")) { m ->
-                "T${m.groupValues[1]}:${m.groupValues[2]}:${m.groupValues[3]}${m.groupValues[4]}${m.groupValues[5]}:${m.groupValues[6]}"
-            }
+    /** Gadgetbridge names exports like "2026-04-07T13_55_47+02_00.json"; null if the name doesn't say. */
+    fun parseFilenameDate(filename: String): Long? {
+        val m = filenameDate.find(filename) ?: return null
+        val (d, h, min, s, oh, om) = m.destructured
         return try {
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
-            sdf.parse(normalized)?.time ?: System.currentTimeMillis()
-        } catch (e: Exception) {
-            System.currentTimeMillis()
-        }
+            OffsetDateTime.parse("${d}T$h:$min:$s$oh:$om").toInstant().toEpochMilli()
+        } catch (e: Exception) { null }
     }
 
-    private fun JsonObject.getFloatValue(key: String): Float {
-        if (!has(key)) return 0f
-        val obj = get(key)
-        return if (obj.isJsonObject) {
-            obj.asJsonObject.get("value")?.asFloat ?: 0f
-        } else {
-            obj.asFloat
-        }
+    // Gadgetbridge wraps values as {"unit": "...", "value": 1.0}; older exports use bare numbers.
+    private fun JsonObject.value(key: String): JsonElement? {
+        val e = get(key) ?: return null
+        return if (e.isJsonObject) e.asJsonObject.get("value") else e
     }
 
-    private fun JsonObject.getStringValue(key: String): String {
-        if (!has(key)) return ""
-        val obj = get(key)
-        return if (obj.isJsonObject) {
-            obj.asJsonObject.get("value")?.asString ?: ""
-        } else {
-            obj.asString
-        }
-    }
+    private fun JsonObject.num(key: String): Double =
+        value(key)?.takeIf { it.isJsonPrimitive }?.let { runCatching { it.asDouble }.getOrNull() } ?: 0.0
+
+    private fun JsonObject.str(key: String): String =
+        value(key)?.takeIf { it.isJsonPrimitive }?.asString ?: ""
 }

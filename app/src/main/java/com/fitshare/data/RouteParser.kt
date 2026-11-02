@@ -121,12 +121,36 @@ object RouteParser {
             }
         }
         return Route(
+            profile = elevationProfile(segments),
             segments = segments.map { seg -> seg.map { LatLon(it.lat, it.lon) } },
             distanceMeters = distance,
             elevationGainMeters = gain,
             startMillis = segments.firstNotNullOfOrNull { seg -> seg.firstNotNullOfOrNull { it.time } },
             movingSeconds = (moving / 1000).toInt()
         )
+    }
+
+    /** Elevation over distance, resampled to [samples] evenly spaced points for drawing. */
+    private fun elevationProfile(segments: List<List<Pt>>, samples: Int = 120): List<Double> {
+        val dist = ArrayList<Double>(); val ele = ArrayList<Double>()
+        var d = 0.0; var prev: Pt? = null
+        for (seg in segments) {
+            prev = null // pauses don't add distance
+            for (p in seg) {
+                prev?.let { d += haversine(it, p) }
+                prev = p
+                p.ele?.let { dist += d; ele += it }
+            }
+        }
+        if (ele.size < 2 || d <= 0) return emptyList()
+        var j = 0
+        return List(samples) { i ->
+            val target = d * i / (samples - 1)
+            while (j < dist.size - 2 && dist[j + 1] < target) j++
+            val span = dist[j + 1] - dist[j]
+            val t = if (span > 0) ((target - dist[j]) / span).coerceIn(0.0, 1.0) else 0.0
+            ele[j] + (ele[j + 1] - ele[j]) * t
+        }
     }
 
     private fun haversine(a: Pt, b: Pt): Double {

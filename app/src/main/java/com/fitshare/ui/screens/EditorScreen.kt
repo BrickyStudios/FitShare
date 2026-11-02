@@ -10,7 +10,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
@@ -43,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -68,6 +69,13 @@ import com.fitshare.data.Workout
 import com.fitshare.data.WorkoutViewModel
 import com.fitshare.data.formatDistance
 import com.fitshare.data.formatInt
+import com.fitshare.data.StatKey
+import com.fitshare.data.availableStats
+import com.fitshare.data.pickStats
+import com.fitshare.data.tr
+import com.fitshare.export.InkColor
+import com.fitshare.export.OverlayLayout
+import com.fitshare.export.OverlayOptions
 import com.fitshare.export.ShareHelper
 import com.fitshare.export.StoryRenderer
 import com.fitshare.export.StoryStyle
@@ -86,6 +94,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
 
+private enum class Section(val de: String, val en: String) {
+    LAYOUT("Layout", "Layout"), STATS("Werte", "Stats"), COLOR("Farbe", "Colour"), EXTRAS("Extras", "Extras"), SPORT("Sport", "Sport");
+    val label get() = tr(de, en)
+}
+
 @Composable
 fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
     val ctx = LocalContext.current
@@ -97,6 +110,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
     state.workout?.let { last = it }
     val workout = last ?: return
     val accent = Color(workout.sport.accent)
+    val overlay by vm.overlay.collectAsState()
 
     BackHandler { vm.reset() }
     LaunchedEffect(state.error) {
@@ -111,19 +125,22 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
     LaunchedEffect(pager.settledPage) { prefs.edit().putInt("style", pager.settledPage).apply() }
     val style = StoryStyle.entries[pager.currentPage]
     var busy by remember { mutableStateOf(false) }
-    var darkInk by remember { mutableStateOf(prefs.getBoolean("darkInk", false)) }
-    LaunchedEffect(darkInk) { prefs.edit().putBoolean("darkInk", darkInk).apply() }
+    var section by remember { mutableStateOf(Section.LAYOUT) }
 
-    fun renderFull() = StoryRenderer.render(ctx, workout, style, background, darkInk = darkInk)
+    fun renderFull() = StoryRenderer.render(ctx, workout, style, background, overlay = overlay)
 
     fun save() = scope.launch {
         busy = true
         val ok = ShareHelper.saveToGallery(ctx, withContext(Dispatchers.Default) { renderFull() })
         busy = false
-        Toast.makeText(ctx, if (ok) "Gespeichert in Bilder/FitShare" else "Speichern hat nicht geklappt", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            ctx,
+            if (ok) tr("Gespeichert in Bilder/FitShare", "Saved to Pictures/FitShare") else tr("Speichern hat nicht geklappt", "Saving failed"),
+            Toast.LENGTH_SHORT
+        ).show()
     }
     val storagePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) save() else Toast.makeText(ctx, "Ohne Speicherrecht kein Speichern", Toast.LENGTH_SHORT).show()
+        if (granted) save() else Toast.makeText(ctx, tr("Ohne Speicherrecht kein Speichern", "Saving needs the storage permission"), Toast.LENGTH_SHORT).show()
     }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) vm.setBackground(uri)
@@ -131,13 +148,8 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
     val routePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.open(it) }
 
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(vertical = 8.dp)) {
-        // top bar
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            TextAction("‹  Neu") { vm.reset() }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextAction(tr("‹  Neu", "‹  New")) { vm.reset() }
         }
 
         // story pages: swipe between styles; neighbours peek in, scaled back
@@ -148,10 +160,10 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 8.dp)
         ) { page ->
             val pageStyle = StoryStyle.entries[page]
-            val preview by produceState<Bitmap?>(null, workout, pageStyle, background, darkInk) {
-                value = withContext(Dispatchers.Default) { StoryRenderer.render(ctx, workout, pageStyle, background, 0.5f, darkInk) }
+            val isOverlay = pageStyle == StoryStyle.OVERLAY
+            val preview by produceState<Bitmap?>(null, workout, pageStyle, background, overlay) {
+                value = withContext(Dispatchers.Default) { StoryRenderer.render(ctx, workout, pageStyle, background, 0.5f, overlay) }
             }
-            val overlay = pageStyle == StoryStyle.OVERLAY
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Box(
                     Modifier
@@ -164,18 +176,18 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                             alpha = 1f - 0.45f * off
                         }
                         .clip(RoundedCornerShape(22.dp))
-                        .then(if (overlay) Modifier.checkerboard(light = darkInk) else Modifier.background(Raised))
-                        .semantics { contentDescription = "Vorschau Stil ${pageStyle.label}" },
+                        .then(if (isOverlay) Modifier.checkerboard(light = overlay.ink == InkColor.BLACK) else Modifier.background(Raised))
+                        .semantics { contentDescription = tr("Vorschau Stil ", "Preview style ") + pageStyle.label },
                     contentAlignment = Alignment.Center
                 ) {
                     // the overlay is previewed on your photo if you picked one; the PNG itself stays transparent
-                    if (overlay && background != null) {
+                    if (isOverlay && background != null) {
                         Image(background!!.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     }
                     Crossfade(preview, label = "preview") { bmp ->
                         if (bmp != null) Image(
                             bmp.asImageBitmap(), null,
-                            Modifier.fillMaxSize().padding(if (overlay) 18.dp else 0.dp),
+                            Modifier.fillMaxSize().padding(if (isOverlay) 18.dp else 0.dp),
                             contentScale = ContentScale.Fit
                         )
                     }
@@ -184,59 +196,55 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         }
 
         // style tabs mirror the pager
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            StoryStyle.entries.forEachIndexed { i, s ->
-                val selected = pager.currentPage == i
-                val color by animateColorAsState(if (selected) Bone else Muted.copy(alpha = 0.45f), uiSpring(), label = "tab")
-                Column(
-                    Modifier
-                        .pressable { scope.launch { pager.animateScrollToPage(i, animationSpec = uiSpring()) } }
-                        .heightIn(min = 44.dp)
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(s.label.uppercase(), style = Type.label.copy(color = color))
-                    Spacer(Modifier.height(6.dp))
-                    Box(Modifier.size(5.dp).clip(CircleShape).background(if (selected) accent else Color.Transparent))
-                }
-            }
+        TabRow(StoryStyle.entries.map { it.label }, pager.currentPage, accent) { i ->
+            scope.launch { pager.animateScrollToPage(i, animationSpec = uiSpring()) }
         }
 
-        AnimatedVisibility(style == StoryStyle.OVERLAY) {
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center) {
-                InkOption("Weiße Schrift", selected = !darkInk) { darkInk = false }
-                Spacer(Modifier.width(8.dp))
-                InkOption("Schwarze Schrift", selected = darkInk) { darkInk = true }
-            }
+        Spacer(Modifier.height(6.dp))
+
+        // overlay: sectioned controls like a photo editor; full stories: just the sport
+        if (style == StoryStyle.OVERLAY) {
+            TabRow(Section.entries.map { it.label }, section.ordinal, accent, small = true) { section = Section.entries[it] }
+            Spacer(Modifier.height(6.dp))
         }
-
-        Spacer(Modifier.height(8.dp))
-
-        // sport chips
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Sport.entries.forEach { sport ->
-                val selected = sport == workout.sport
-                val bg by animateColorAsState(if (selected) Color(sport.accent) else Raised2, uiSpring(), label = "chip")
-                Row(
-                    Modifier
-                        .pressable {
+        val activeSection = if (style == StoryStyle.OVERLAY) section else Section.SPORT
+        AnimatedContent(activeSection, label = "controls") { sec ->
+            ChipRow {
+                when (sec) {
+                    Section.LAYOUT -> OverlayLayout.entries.forEach { l ->
+                        Chip(l.label, overlay.layout == l, accent) { vm.updateOverlay { it.copy(layout = l) } }
+                    }
+                    Section.STATS -> {
+                        val max = overlay.layout.maxStats
+                        val chosen = overlay.stats ?: workout.pickStats(null, max).map { it.key }
+                        val shown = workout.pickStats(chosen, max).map { it.key }
+                        // "Auto" = let the sport decide (and follow it when the sport changes)
+                        Chip("Auto", overlay.stats == null, accent) { vm.updateOverlay { it.copy(stats = null) } }
+                        workout.availableStats().forEach { st ->
+                            val idx = shown.indexOf(st.key)
+                            Chip(st.label, idx >= 0, accent, badge = if (idx >= 0) "${idx + 1}" else null) {
+                                vm.updateOverlay { o -> o.copy(stats = toggleStat(shown, st.key, max)) }
+                            }
+                        }
+                    }
+                    Section.COLOR -> InkColor.entries.forEach { ink ->
+                        val dot = when (ink) { InkColor.WHITE -> Color.White; InkColor.BLACK -> Color(0xFF14140F); InkColor.SPORT -> accent }
+                        Chip(ink.label, overlay.ink == ink, accent, dot = dot) { vm.updateOverlay { it.copy(ink = ink) } }
+                    }
+                    Section.EXTRAS -> {
+                        val r = workout.route
+                        if (r != null) Chip(tr("Route", "Route"), overlay.showRoute, accent) { vm.updateOverlay { it.copy(showRoute = !it.showRoute) } }
+                        if (r != null && r.profile.size > 1) Chip(tr("Höhenprofil", "Elevation"), overlay.showProfile, accent) { vm.updateOverlay { it.copy(showProfile = !it.showProfile) } }
+                        if (workout.stats.hrZoneSeconds.sum() > 0) Chip(tr("Pulszonen", "HR zones"), overlay.showZones, accent) { vm.updateOverlay { it.copy(showZones = !it.showZones) } }
+                        if (workout.startMillis != null) Chip(tr("Datum", "Date"), overlay.showDate, accent) { vm.updateOverlay { it.copy(showDate = !it.showDate) } }
+                        Chip("Logo", overlay.showBrand, accent) { vm.updateOverlay { it.copy(showBrand = !it.showBrand) } }
+                    }
+                    Section.SPORT -> Sport.entries.forEach { sport ->
+                        Chip(sport.label, sport == workout.sport, Color(sport.accent), dot = Color(sport.accent)) {
                             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                             vm.setSport(sport)
                         }
-                        .clip(CircleShape)
-                        .background(bg)
-                        .heightIn(min = 44.dp)
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (!selected) {
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(sport.accent)))
-                        Spacer(Modifier.width(8.dp))
                     }
-                    Text(sport.label, style = Type.button.copy(fontSize = Type.body.fontSize, color = if (selected) OnAccent else Bone))
                 }
             }
         }
@@ -246,8 +254,8 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         // tools
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ToolTile(
-                title = "Foto",
-                detail = if (state.background != null) "Gesetzt" else "Hintergrund wählen",
+                title = tr("Foto", "Photo"),
+                detail = if (state.background != null) tr("Gesetzt", "Set") else tr("Hintergrund wählen", "Pick a background"),
                 active = state.background != null,
                 modifier = Modifier.weight(1f),
                 onRemove = { vm.setBackground(null) },
@@ -255,10 +263,10 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             )
             val route = state.route
             ToolTile(
-                title = "Route",
+                title = tr("Route", "Route"),
                 detail = route?.let {
                     val d = formatDistance(it.distanceMeters)
-                    "${d.value} ${d.unit.lowercase()} · ${formatInt(it.pointCount)} Pkt."
+                    "${d.value} ${d.unit.lowercase()} · ${formatInt(it.pointCount)} " + tr("Pkt.", "pts")
                 } ?: "GPX · KML · KMZ",
                 active = route != null,
                 modifier = Modifier.weight(1f),
@@ -280,7 +288,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                                 val bmp = withContext(Dispatchers.Default) { renderFull() }
                                 ShareHelper.share(ctx, ShareHelper.cacheForSharing(ctx, bmp))
                             } catch (e: Exception) {
-                                Toast.makeText(ctx, "Teilen fehlgeschlagen: ${e.message}", Toast.LENGTH_LONG).show()
+                                Toast.makeText(ctx, tr("Teilen fehlgeschlagen: ", "Sharing failed: ") + e.message, Toast.LENGTH_LONG).show()
                             } finally {
                                 busy = false
                             }
@@ -291,9 +299,9 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                     .heightIn(min = 60.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Teilen", style = Type.button.copy(color = Bone))
+                Text(tr("Teilen", "Share"), style = Type.button.copy(color = Bone))
             }
-            BigButton("PNG speichern", Modifier.weight(0.62f), color = accent, busy = busy) {
+            BigButton(tr("PNG speichern", "Save PNG"), Modifier.weight(0.62f), color = accent, busy = busy) {
                 view.performHapticFeedback(
                     if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
                 )
@@ -303,22 +311,82 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             }
         }
         Text(
-            if (style == StoryStyle.OVERLAY) "Instagram: Story öffnen → Sticker → Foto → PNG wählen"
-            else "Fertige Story 1080 × 1920, als Hintergrund in Instagram",
+            if (style == StoryStyle.OVERLAY) tr("Instagram: Story öffnen → Sticker → Foto → PNG wählen", "Instagram: open a story → Stickers → Photo → pick the PNG")
+            else tr("Fertige Story 1080 × 1920, als Hintergrund in Instagram", "Finished 1080 × 1920 story, use it as the Instagram background"),
             style = Type.body.copy(fontSize = Type.label.fontSize * 1.1f),
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
         )
     }
 }
 
+/** Tap order counts. Tapping a chosen stat removes it (never the last one); a new one past the limit pushes out the oldest. */
+internal fun toggleStat(current: List<StatKey>, key: StatKey, max: Int): List<StatKey> = when {
+    key in current -> if (current.size > 1) current - key else current
+    else -> (current + key).takeLast(max)
+}
+
 @Composable
-private fun InkOption(text: String, selected: Boolean, onClick: () -> Unit) {
-    val bg by animateColorAsState(if (selected) Bone else Raised2, uiSpring(), label = "ink")
-    Box(
-        Modifier.pressable(onClick = onClick).clip(CircleShape).background(bg).heightIn(min = 36.dp).padding(horizontal = 14.dp),
-        contentAlignment = Alignment.Center
+private fun TabRow(labels: List<String>, selectedIndex: Int, accent: Color, small: Boolean = false, onSelect: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        labels.forEachIndexed { i, text ->
+            val selected = selectedIndex == i
+            val color by animateColorAsState(if (selected) Bone else Muted.copy(alpha = 0.45f), uiSpring(), label = "tab")
+            Column(
+                Modifier
+                    .pressable { onSelect(i) }
+                    .heightIn(min = if (small) 36.dp else 44.dp)
+                    .padding(horizontal = if (small) 10.dp else 14.dp, vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text.uppercase(), style = Type.label.copy(color = color, fontSize = if (small) Type.label.fontSize * 0.95f else Type.label.fontSize))
+                Spacer(Modifier.height(5.dp))
+                Box(Modifier.size(if (small) 4.dp else 5.dp).clip(CircleShape).background(if (selected) accent else Color.Transparent))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChipRow(content: @Composable () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) { content() }
+}
+
+@Composable
+private fun Chip(
+    text: String,
+    selected: Boolean,
+    selectedColor: Color,
+    dot: Color? = null,
+    badge: String? = null,
+    onClick: () -> Unit
+) {
+    val bg by animateColorAsState(if (selected) selectedColor else Raised2, uiSpring(), label = "chip")
+    val fg = if (selected) OnAccent else Bone
+    Row(
+        Modifier
+            .pressable(onClick = onClick)
+            .clip(CircleShape)
+            .background(bg)
+            .heightIn(min = 44.dp)
+            .padding(horizontal = 16.dp)
+            .semantics { contentDescription = text + if (selected) tr(", ausgewählt", ", selected") else "" },
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text, style = Type.label.copy(color = if (selected) OnAccent else Bone))
+        if (badge != null) {
+            Box(Modifier.size(20.dp).clip(CircleShape).background(OnAccent), contentAlignment = Alignment.Center) {
+                Text(badge, style = Type.label.copy(color = selectedColor, letterSpacing = Type.body.letterSpacing))
+            }
+            Spacer(Modifier.width(8.dp))
+        } else if (dot != null) {
+            Box(Modifier.size(10.dp).clip(CircleShape).background(dot).drawBehind {
+                drawCircle(Bone.copy(alpha = 0.45f), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
+            })
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(text, style = Type.button.copy(fontSize = Type.body.fontSize, color = fg))
     }
 }
 
@@ -358,7 +426,7 @@ private fun ToolTile(
         }
         if (active) {
             Box(
-                Modifier.pressable(onClick = onRemove).size(44.dp).semantics { contentDescription = "$title entfernen" },
+                Modifier.pressable(onClick = onRemove).size(44.dp).semantics { contentDescription = tr("$title entfernen", "Remove $title") },
                 contentAlignment = Alignment.Center
             ) {
                 Text("✕", style = Type.button.copy(color = Muted))

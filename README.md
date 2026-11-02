@@ -1,72 +1,84 @@
-<h1 align="center">FitShare – Gadgetbridge-Workouts als Instagram-Story</h1>
+<h1 align="center">FitShare: Gadgetbridge workouts as Instagram story stickers</h1>
 
-<p align="center"><strong>Android-App, die aus deinem Gadgetbridge-Export und deiner GPS-Route eine fertige Instagram-Story (1080 × 1920) macht: als transparentes PNG im Strava-Stil zum Einfügen in deine Story, oder als fertiges Bild. Offline, ohne Konto.</strong></p>
+<p align="center"><strong>Android app that turns a Gadgetbridge workout export and a GPS route into a transparent PNG for your Instagram story, similar to Strava's stats sticker. Works offline, no account.</strong></p>
 
 <p align="center">
-  <a href="https://kotlinlang.org/"><img alt="Gebaut mit Kotlin" src="https://img.shields.io/badge/gebaut_mit-Kotlin-0C0D0B?style=for-the-badge&logo=kotlin&logoColor=C6F432"></a>
+  <a href="https://kotlinlang.org/"><img alt="Made with Kotlin" src="https://img.shields.io/badge/made_with-Kotlin-0C0D0B?style=for-the-badge&logo=kotlin&logoColor=C6F432"></a>
   <br>
-  <a href="#installation"><img alt="Android 8.0 oder neuer" src="https://img.shields.io/badge/Android-8.0%2B-C6F432?logo=android&logoColor=C6F432&labelColor=0C0D0B"></a>
+  <a href="#install"><img alt="Android 8.0 or newer" src="https://img.shields.io/badge/Android-8.0%2B-C6F432?logo=android&logoColor=C6F432&labelColor=0C0D0B"></a>
   <a href="https://developer.android.com/compose"><img alt="Jetpack Compose" src="https://img.shields.io/badge/UI-Jetpack_Compose-C6F432?logo=jetpackcompose&logoColor=C6F432&labelColor=0C0D0B"></a>
-  <a href="https://gadgetbridge.org/"><img alt="Gadgetbridge JSON-Export" src="https://img.shields.io/badge/Gadgetbridge-JSON_Export-C6F432?labelColor=0C0D0B"></a>
-  <a href="#funktionen"><img alt="Routen aus GPX, KML und KMZ" src="https://img.shields.io/badge/Route-GPX_·_KML_·_KMZ-C6F432?labelColor=0C0D0B"></a>
-  <a href="#funktionen"><img alt="Offline ohne Tracking" src="https://img.shields.io/badge/Tracking-keins-C6F432?labelColor=0C0D0B"></a>
-  <a href="https://github.com/BrickyStudios/FitShare/commits/main"><img alt="Letzter Commit" src="https://img.shields.io/github/last-commit/BrickyStudios/FitShare?label=letzter%20Commit&color=C6F432&labelColor=0C0D0B"></a>
-  <a href="https://github.com/BrickyStudios/FitShare/stargazers"><img alt="GitHub-Sterne" src="https://img.shields.io/github/stars/BrickyStudios/FitShare?label=Sterne&color=C6F432&labelColor=0C0D0B"></a>
+  <a href="https://gadgetbridge.org/"><img alt="Reads Gadgetbridge JSON exports" src="https://img.shields.io/badge/Gadgetbridge-JSON_export-C6F432?labelColor=0C0D0B"></a>
+  <a href="#what-it-does"><img alt="Routes from GPX, KML and KMZ" src="https://img.shields.io/badge/Routes-GPX_·_KML_·_KMZ-C6F432?labelColor=0C0D0B"></a>
+  <a href="#what-it-does"><img alt="English and German" src="https://img.shields.io/badge/Languages-EN_·_DE-C6F432?labelColor=0C0D0B"></a>
+  <a href="#what-it-does"><img alt="No tracking" src="https://img.shields.io/badge/Tracking-none-C6F432?labelColor=0C0D0B"></a>
+  <a href="https://github.com/BrickyStudios/FitShare/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/BrickyStudios/FitShare?label=release&color=C6F432&labelColor=0C0D0B"></a>
+  <a href="https://github.com/BrickyStudios/FitShare/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/BrickyStudios/FitShare?color=C6F432&labelColor=0C0D0B"></a>
 </p>
 
 <p align="center">
-  <a href="#installation">Installation</a> ·
-  <a href="#so-gehts">So geht's</a> ·
-  <a href="#selbst-bauen">Selbst bauen</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#how-to-use-it">How to use it</a> ·
+  <a href="#build-it-yourself">Build it yourself</a> ·
   <a href="https://github.com/BrickyStudios/FitShare/releases">Releases</a>
 </p>
 
-Gadgetbridge zeichnet Workouts von Mi Band, Amazfit und anderen Uhren ohne Hersteller-Cloud auf. Einen Teilen-Knopf wie bei Mi Fitness, Strava oder Garmin Connect hat es aber nicht. FitShare schließt die Lücke: Workout-JSON rein, Route dazu, Story teilen.
+Gadgetbridge records workouts from Mi Band, Amazfit and other watches without the vendor's cloud. It has no share button like Strava or Garmin Connect, and a Mi Band 10 export doesn't even contain the distance. FitShare reads the export, takes distance, elevation and the map from your GPX or KMZ route, and draws the image.
 
 <p align="center">
-  <img src="docs/bilder/0-overlay.png" width="240" alt="FitShare Overlay: transparentes PNG mit Distanz, Zeit, Tempo und GPS-Route, als Sticker über ein eigenes Foto in der Instagram-Story gelegt">
-  <img src="docs/bilder/1-nacht.png" width="240" alt="FitShare Instagram-Story im Stil Nacht: Radfahren 64,15 km mit leuchtender GPS-Route, Pulszonen, Tempo und Höhenmetern">
-  <img src="docs/bilder/2-startnummer.png" width="240" alt="FitShare Instagram-Story im Stil Startnummer: Papier-Look mit orangem Kopfbalken, Route und Trainingswerten">
+  <img src="docs/bilder/0-overlay-stack.png" width="200" alt="FitShare stack overlay: distance, time and average speed above the route, white on a transparent background, placed over a sunset photo">
+  <img src="docs/bilder/0-overlay-card.png" width="200" alt="FitShare card overlay: translucent rounded card with route, four stats, elevation profile and date">
+  <img src="docs/bilder/0-overlay-map.png" width="200" alt="FitShare map overlay: large route in the sport colour with a one-line summary of distance, time and speed">
+</p>
+<p align="center">
+  <img src="docs/bilder/1-night.png" width="200" alt="FitShare full story in the Night style: dark background, glowing route, heart rate zones and a stats table">
+  <img src="docs/bilder/2-race-bib.png" width="200" alt="FitShare full story in the Race bib style: paper look with an orange header band, route and stats">
 </p>
 
-<p align="center"><sub>Die Bilder zeigen eine erfundene Demo-Runde, keine echte Strecke.</sub></p>
+<p align="center"><sub>Demo data from an invented route. The backgrounds are drawn, in the app you use your own photo.</sub></p>
 
-## Funktionen
+## What it does
 
-- 🪄 **Overlay wie bei Strava**: Distanz, Zeit und Tempo untereinander, die Route darunter, transparenter Hintergrund, eng zugeschnitten. In Instagram als Foto-Sticker über dein eigenes Bild legen. Schrift weiß oder schwarz, je nach Foto.
-- 🎟️ **Oder fertige Story-Bilder**: *Nacht* (dunkel, leuchtende Route) und *Startnummer* (Papier mit Farbbalken wie eine Startnummer), beide 1080 × 1920.
-- 🗺️ **Route aus GPX, KML oder KMZ**: OpenTracks-Exporte funktionieren direkt. Fehlt im Gadgetbridge-Export die Distanz (beim Mi Band 10 üblich), rechnet FitShare sie aus der Route, dazu die Höhenmeter.
-- 🚴 **Sportart erkannt oder gewählt**: Radfahren, Laufen, Schwimmen, Wandern oder Training. Jede Sportart hat eigene Kennzahlen und eine eigene Farbe.
-- ❤️ **Pulszonen**: Die fünf Gadgetbridge-Zonen erscheinen als Balken.
-- 🖼️ **Eigenes Foto** als Hintergrund.
-- 📤 **Teilen oder speichern**: Teilen-Menü an Instagram und jede andere App, oder als PNG nach *Bilder/FitShare*.
-- 💾 **Merkt sich alles**: Wechselst du zu Instagram und Android beendet FitShare im Hintergrund, ist beim Zurückkommen alles noch da, auch der zuletzt gewählte Stil.
-- 🔒 **Offline**: keine Konten, kein Tracking, keine Server.
+**Overlay (transparent PNG).** Cropped to its content, so Instagram adds it as a sticker you can move and resize.
 
-## Installation
+| Option | Choices |
+|---|---|
+| Layout | Stack (stats above the route, like Strava), Row, Card (translucent panel), Map (big route, one line of stats) |
+| Stats | Any of distance, time, speed or pace, elevation gain, average and max heart rate, calories, steps, laps, SWOLF, strokes, stroke type. Tap order sets the order; "Auto" picks by sport |
+| Colour | White, black, or the sport's colour |
+| Extras | Route, elevation profile, heart rate zones, date, logo |
 
-Android 8.0 oder neuer. APKs baut der Workflow [Build & Release APK](.github/workflows/release.yml), sobald ein Tag `v*` gepusht wird. Sie landen unter [Releases](https://github.com/BrickyStudios/FitShare/releases) und lassen sich mit Obtainium verfolgen.
+The preview shows the overlay on your photo if you pick one. The saved PNG stays transparent.
 
-## So geht's
+**Full stories (1080 × 1920).** Two finished designs, Night and Race bib, for when you want the image as the whole story.
 
-1. In Gadgetbridge die Aktivität öffnen und als JSON teilen oder exportieren. Optional die Route aus OpenTracks als KMZ oder GPX.
-2. In FitShare **Dateien wählen** und beide auf einmal markieren. Alternativ beide nacheinander an FitShare teilen.
-3. Sportart prüfen, beim Overlay weiße oder schwarze Schrift wählen.
-4. **PNG speichern** tippen. In Instagram: Story öffnen → Sticker → Foto → das PNG wählen. Die fertigen Story-Bilder (Nacht, Startnummer) gehen auch direkt über **Teilen**.
+**Data.** Reads the Gadgetbridge workout JSON and routes as GPX, KML or KMZ (OpenTracks KMZ works as is). If the export lacks distance or time, FitShare computes them from the route, plus elevation gain. It guesses the sport from the speed; you can change it.
+
+**Everyday details.** Share the JSON and the route to FitShare one after the other, or pick both at once. If Android closes the app while you are in Instagram, your workout, photo and settings are still there when you come back. The app follows your phone's language (English or German), or set it per app in Android 13+.
+
+**Privacy.** No account, no network access, no analytics. Files stay on the phone.
+
+## Install
+
+Android 8.0 or newer. Download the APK from [Releases](https://github.com/BrickyStudios/FitShare/releases/latest), or add `https://github.com/BrickyStudios/FitShare` to [Obtainium](https://github.com/ImranR98/Obtainium) to get updates.
+
+## How to use it
+
+1. In Gadgetbridge, open the workout and share or export it as JSON. If you recorded the route with OpenTracks, export it as KMZ or GPX.
+2. Open FitShare, tap **Choose files** and select both. Sharing them to FitShare from the other apps works too.
+3. Check the sport, then pick layout, stats, colour and extras.
+4. Tap **Save PNG**. In Instagram, open a story, tap Stickers → Photo and pick the PNG.
 
 <p align="center">
-  <img src="docs/bilder/app-start.png" width="240" alt="FitShare Startbildschirm: Dateien aus Gadgetbridge und OpenTracks wählen">
-  <img src="docs/bilder/app-editor.png" width="240" alt="FitShare Editor: Stil wischen, Sportart wählen, Foto und GPS-Route hinzufügen, in die Instagram-Story teilen">
+  <img src="docs/bilder/app-start.png" width="220" alt="FitShare start screen with the button to choose a Gadgetbridge JSON and a route file">
+  <img src="docs/bilder/app-editor.png" width="220" alt="FitShare editor: overlay preview on a checkerboard, tabs for layout, stats, colour, extras and sport, Save PNG button">
 </p>
 
-## Selbst bauen
+## Build it yourself
 
 ```bash
 ./gradlew testDebugUnitTest assembleRelease
 ```
 
-Kotlin, Jetpack Compose, JDK 17. Vorschau und Export zeichnet derselbe Canvas-Renderer (`export/StoryRenderer.kt`), deshalb sieht die geteilte Story genau aus wie die Vorschau. Schriften: [Big Shoulders Display](https://fonts.google.com/specimen/Big+Shoulders+Display) und [Archivo](https://fonts.google.com/specimen/Archivo), beide unter der SIL Open Font License (`app/src/main/assets/fonts`).
+Kotlin, Jetpack Compose, JDK 17. One Canvas renderer draws both the preview and the export, so what you save is what you saw. Without the signing secrets, release builds use the debug key. Fonts: [Big Shoulders Display](https://fonts.google.com/specimen/Big+Shoulders+Display) and [Archivo](https://fonts.google.com/specimen/Archivo), both under the SIL Open Font License (`app/src/main/assets/fonts`).
 
-## Hinweis
-
-FitShare ist ein unabhängiges Projekt und gehört weder zu Gadgetbridge noch zu Instagram oder Meta.
+FitShare is an independent project and is not affiliated with Gadgetbridge, Strava, Instagram or Meta.

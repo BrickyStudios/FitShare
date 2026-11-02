@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import com.google.gson.Gson
+import com.fitshare.export.OverlayOptions
 import java.io.File
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -45,6 +46,23 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val sessionFile = File(files, "session.json")
     private val gson = Gson()
 
+    private val prefs = application.getSharedPreferences("editor", android.content.Context.MODE_PRIVATE)
+    private val _overlay = MutableStateFlow(loadOverlay())
+    val overlay: StateFlow<OverlayOptions> = _overlay.asStateFlow()
+
+    fun updateOverlay(change: (OverlayOptions) -> OverlayOptions) {
+        _overlay.update(change)
+        prefs.edit().putString("overlay", gson.toJson(_overlay.value)).apply()
+    }
+
+    // Gson skips Kotlin defaults: anything missing or unknown from an older version resets to the default
+    @Suppress("SENSELESS_COMPARISON")
+    private fun loadOverlay(): OverlayOptions =
+        runCatching { gson.fromJson(prefs.getString("overlay", null), OverlayOptions::class.java) }.getOrNull()
+            ?.takeIf { it.layout != null && it.ink != null }
+            ?.let { o -> o.copy(stats = o.stats?.filterNotNull()) }
+            ?: OverlayOptions()
+
     private class Session(val stats: WorkoutStats?, val route: Route?, val sport: Sport?, val background: String?)
 
     init {
@@ -68,7 +86,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private fun restore() {
         val s = runCatching { gson.fromJson(sessionFile.readText(), Session::class.java) }.getOrNull() ?: return
         val bg = s.background?.let(::File)?.takeIf { it.exists() }
-        _state.value = UiState(stats = s.stats, route = s.route, sportOverride = s.sport, background = bg?.let(Uri::fromFile))
+        @Suppress("SENSELESS_COMPARISON") // sessions saved before the elevation profile existed
+        val route = s.route?.let { if (it.profile == null) it.copy(profile = emptyList()) else it }
+        _state.value = UiState(stats = s.stats, route = route, sportOverride = s.sport, background = bg?.let(Uri::fromFile))
     }
 
     /** Opens any mix of workout JSON and route files (GPX/KML/KMZ). Later files replace earlier ones of the same kind. */
@@ -89,11 +109,11 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                             WorkoutParser.looksLikeJson(bytes) ->
                                 stats = WorkoutParser.parse(bytes.decodeToString(), name).getOrThrow()
                             RouteParser.looksLikeRoute(bytes) ->
-                                route = RouteParser.parse(bytes) ?: error("Keine GPS-Punkte gefunden.")
-                            else -> error("Unbekanntes Format. Erwartet: JSON, GPX, KML oder KMZ.")
+                                route = RouteParser.parse(bytes) ?: error(tr("Keine GPS-Punkte gefunden.", "No GPS points found."))
+                            else -> error(tr("Unbekanntes Format. Erwartet: JSON, GPX, KML oder KMZ.", "Unknown format. Expected JSON, GPX, KML or KMZ."))
                         }
                     } catch (e: Exception) {
-                        problems += "$name: ${e.message ?: "konnte nicht gelesen werden"}"
+                        problems += "$name: ${e.message ?: tr("konnte nicht gelesen werden", "could not be read")}"
                     }
                 }
             }
@@ -126,7 +146,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }.getOrNull()
                 }
             }
-            if (uri != null && copy == null) { _state.update { it.copy(error = "Foto konnte nicht geladen werden.") }; return@launch }
+            if (uri != null && copy == null) { _state.update { it.copy(error = tr("Foto konnte nicht geladen werden.", "Couldn't load the photo.")) }; return@launch }
             withContext(Dispatchers.IO) { deleteBackgrounds(except = copy) }
             _state.update { it.copy(background = copy?.let(Uri::fromFile)) }
         }
@@ -146,14 +166,14 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             getApplication<Application>().contentResolver
                 .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
                 ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
-        }.getOrNull() ?: uri.lastPathSegment ?: "Datei"
+        }.getOrNull() ?: uri.lastPathSegment ?: tr("Datei", "File")
 
     private fun readBytes(uri: Uri): ByteArray {
         val stream = getApplication<Application>().contentResolver.openInputStream(uri)
-            ?: error("konnte nicht geöffnet werden")
+            ?: error(tr("konnte nicht geöffnet werden", "could not be opened"))
         return stream.use {
             val bytes = it.readNBytesCompat(MAX_BYTES + 1)
-            require(bytes.size <= MAX_BYTES) { "Datei ist größer als 50 MB." }
+            require(bytes.size <= MAX_BYTES) { tr("Datei ist größer als 50 MB.", "File is larger than 50 MB.") }
             bytes
         }
     }

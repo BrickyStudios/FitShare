@@ -5,13 +5,17 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 class ParsingTest {
+
+    @Before fun german() = Locale.setDefault(Locale.GERMAN)
 
     // Shape of a real Mi Band 10 cycling export: no distance, no sport, HR zones.
     private val cyclingJson = """
@@ -65,6 +69,31 @@ class ParsingTest {
         assertEquals(10.0, r.elevationGainMeters, 0.01) // 100→110 counts, 120→121 is noise
     }
 
+    @Test fun elevationProfileFollowsDistance() {
+        val p = RouteParser.parse(kml.toByteArray())!!.profile
+        assertEquals(120, p.size)
+        assertEquals(100.0, p.first(), 0.01)
+        assertEquals(121.0, p.last(), 0.01)
+        assertTrue(p.all { it in 100.0..121.0 })
+    }
+
+    @Test fun pickStatsKeepsTapOrderAndSkipsMissing() {
+        val w = mergeWorkout(WorkoutStats(activeSeconds = 3600, distanceMeters = 30000.0, averageHR = 140), null, Sport.CYCLING)
+        assertEquals(listOf(StatKey.DISTANCE, StatKey.TIME, StatKey.SPEED), w.pickStats(null, 3).map { it.key })
+        assertEquals(listOf(StatKey.AVG_HR, StatKey.DISTANCE), w.pickStats(listOf(StatKey.AVG_HR, StatKey.LAPS, StatKey.DISTANCE), 3).map { it.key })
+        assertEquals(listOf(StatKey.DISTANCE, StatKey.TIME), w.pickStats(listOf(StatKey.LAPS), 2).map { it.key }) // nothing usable → default
+    }
+
+    @Test fun englishLabelsAndNumbers() {
+        Locale.setDefault(Locale.ENGLISH)
+        val w = mergeWorkout(WorkoutStats(activeSeconds = 3600, distanceMeters = 30500.0, calories = 1310), null, Sport.CYCLING)
+        val c = w.storyContent()
+        assertEquals("30.50", c.hero.value)
+        assertEquals("Avg speed", c.cells[1].label)
+        assertEquals("1,310", c.cells.first { it.key == StatKey.ENERGY }.value)
+        assertEquals("Cycling", Sport.CYCLING.label)
+    }
+
     @Test fun kmzIsUnzipped() {
         val buf = ByteArrayOutputStream()
         ZipOutputStream(buf).use { it.putNextEntry(ZipEntry("doc.kml")); it.write(kml.toByteArray()) }
@@ -91,7 +120,7 @@ class ParsingTest {
         assertEquals(Sport.CYCLING, w.sport) // 67 km in 2:41 h ≈ 25 km/h
         assertEquals(9663, w.activeSeconds) // JSON wins over GPS time
         val c = w.storyContent()
-        assertEquals(Stat("Distanz", "67,32", "KM"), c.hero)
+        assertEquals(Stat(StatKey.DISTANCE, "67,32", "KM"), c.hero)
         assertEquals(listOf("Zeit", "Ø Tempo", "Anstieg", "Ø Puls", "Max Puls", "Energie"), c.cells.map { it.label })
         assertEquals("2:41:03", c.cells[0].value)
         assertEquals("25,1", c.cells[1].value)
@@ -104,14 +133,14 @@ class ParsingTest {
         val w = mergeWorkout(s, null, null)
         assertEquals(Sport.SWIMMING, w.sport)
         val c = w.storyContent()
-        assertEquals(Stat("Distanz", "1,00", "KM"), c.hero)
-        assertEquals(Stat("Pace", "3:00", "/100M"), c.cells[1])
+        assertEquals(Stat(StatKey.DISTANCE, "1,00", "KM"), c.hero)
+        assertEquals(Stat(StatKey.PACE, "3:00", "/100M"), c.cells[1])
         assertEquals("Bahnen", c.cells[2].label)
     }
 
     @Test fun noDistanceMakesTimeTheHero() {
         val c = mergeWorkout(WorkoutStats(activeSeconds = 2892, averageHR = 120), null, null).storyContent()
-        assertEquals(Stat("Zeit", "48:12"), c.hero)
+        assertEquals(Stat(StatKey.TIME, "48:12"), c.hero)
         assertTrue(c.cells.none { it.label == "Zeit" })
     }
 

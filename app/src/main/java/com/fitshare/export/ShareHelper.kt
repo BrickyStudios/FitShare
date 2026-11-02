@@ -68,6 +68,6 @@ object ShareHelper {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Story teilen"))
+        context.startActivity(Intent.createChooser(intent, com.fitshare.data.tr("Bild teilen", "Share image")))
     }
 }

@@ -16,10 +16,10 @@ object WorkoutParser {
         val root = try {
             JsonParser.parseString(jsonString).asJsonObject
         } catch (e: RuntimeException) { // JsonParseException, IllegalStateException for arrays/primitives
-            throw IllegalArgumentException("Die JSON-Datei ist unvollständig oder beschädigt. Bitte neu aus Gadgetbridge exportieren.")
+            throw IllegalArgumentException(tr("Die JSON-Datei ist unvollständig oder beschädigt. Bitte neu aus Gadgetbridge exportieren.", "The JSON file is incomplete or damaged. Export it again from Gadgetbridge."))
         }
         val known = listOf("activeSeconds", "distanceMeters", "active_calories", "averageHR", "laps", "steps")
-        require(known.any { root.has(it) }) { "Das sieht nicht nach einem Gadgetbridge-Workout aus." }
+        require(known.any { root.has(it) }) { tr("Das sieht nicht nach einem Gadgetbridge-Workout aus.", "This doesn't look like a Gadgetbridge workout.") }
 
         val zones = ZONE_KEYS.map { root.num(it) }
         WorkoutStats(

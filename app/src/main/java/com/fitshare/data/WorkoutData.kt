@@ -8,7 +8,9 @@ data class Route(
     val distanceMeters: Double,
     val elevationGainMeters: Double,
     val startMillis: Long?,
-    val movingSeconds: Int
+    val movingSeconds: Int,
+    /** Elevation in metres, resampled to evenly spaced distance steps; empty if the file has none. */
+    val profile: List<Double> = emptyList()
 ) {
     val pointCount: Int get() = segments.sumOf { it.size }
 }
@@ -32,12 +34,14 @@ data class WorkoutStats(
     val hasSwimData: Boolean get() = laps > 0 || strokes > 0 || swolf > 0 || swimStyle != null
 }
 
-enum class Sport(val label: String, val accent: Int) {
-    CYCLING("Radfahren", 0xFFFF5B1F.toInt()),
-    RUNNING("Laufen", 0xFFC6F432.toInt()),
-    SWIMMING("Schwimmen", 0xFF27D3F5.toInt()),
-    WALKING("Wandern", 0xFFFFB423.toInt()),
-    WORKOUT("Training", 0xFFFF4F8B.toInt())
+enum class Sport(private val de: String, private val en: String, val accent: Int) {
+    CYCLING("Radfahren", "Cycling", 0xFFFF5B1F.toInt()),
+    RUNNING("Laufen", "Running", 0xFFC6F432.toInt()),
+    SWIMMING("Schwimmen", "Swimming", 0xFF27D3F5.toInt()),
+    WALKING("Wandern", "Hiking", 0xFFFFB423.toInt()),
+    WORKOUT("Training", "Workout", 0xFFFF4F8B.toInt());
+
+    val label: String get() = tr(de, en)
 }
 
 /** Everything the story shows: JSON values, filled up from the route where the JSON has gaps. */
@@ -80,10 +84,10 @@ fun guessSport(s: WorkoutStats, distanceMeters: Double, seconds: Int): Sport {
 }
 
 fun swimStyleLabel(raw: String): String = when (raw.lowercase()) {
-    "freestyle" -> "Kraul"
-    "breaststroke" -> "Brust"
-    "backstroke" -> "Rücken"
-    "butterfly" -> "Delfin"
-    "mixed", "medley" -> "Lagen"
+    "freestyle" -> tr("Kraul", "Freestyle")
+    "breaststroke" -> tr("Brust", "Breaststroke")
+    "backstroke" -> tr("Rücken", "Backstroke")
+    "butterfly" -> tr("Delfin", "Butterfly")
+    "mixed", "medley" -> tr("Lagen", "Medley")
     else -> raw.replaceFirstChar { it.uppercase() }
 }

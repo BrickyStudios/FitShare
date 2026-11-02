@@ -31,6 +31,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.fitshare.data.UiState
+import com.fitshare.data.tr
 import com.fitshare.ui.theme.BigButton
 import com.fitshare.ui.theme.Bone
 import com.fitshare.ui.theme.Hairline
@@ -57,27 +58,27 @@ fun ImportScreen(state: UiState, onOpen: (List<android.net.Uri>) -> Unit) {
     ) {
         Row(Modifier.fillMaxWidth().reveal(0), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("FITSHARE", style = Type.label.copy(color = Bone))
-            Text("OFFLINE · OHNE KONTO", style = Type.label)
+            Text(tr("OFFLINE · OHNE KONTO", "OFFLINE · NO ACCOUNT"), style = Type.label)
         }
         Spacer(Modifier.height(72.dp))
         Text(
             buildAnnotatedString {
-                append("DEIN\nTRAINING.\n")
-                withStyle(SpanStyle(color = Volt)) { append("ALS STORY.") }
+                append(tr("DEIN\nTRAINING.\n", "YOUR\nWORKOUT.\n"))
+                withStyle(SpanStyle(color = Volt)) { append(tr("ALS STORY.", "AS A STORY.")) }
             },
             style = Type.hero,
             modifier = Modifier.reveal(1)
         )
         Spacer(Modifier.height(20.dp))
         Text(
-            "Gadgetbridge-Export und Route rein, fertige Instagram-Story raus. Alles bleibt auf dem Handy.",
+            tr("Gadgetbridge-Export und Route rein, fertiges Bild für Instagram raus. Alles bleibt auf dem Handy.", "Drop in a Gadgetbridge export and a route, get an image for Instagram. Nothing leaves your phone."),
             style = Type.body,
             modifier = Modifier.reveal(2)
         )
         Spacer(Modifier.height(36.dp))
-        Step(3, "01", "Workout", "Gadgetbridge → Aktivität → Teilen. Die .json-Datei.")
-        Step(4, "02", "Route", "Optional: GPX, KML oder KMZ, zum Beispiel aus OpenTracks.")
-        Step(5, "03", "PNG", "Overlay speichern und in Instagram als Foto-Sticker einfügen.")
+        Step(3, "01", tr("Workout", "Workout"), tr("Gadgetbridge → Aktivität → Teilen. Die .json-Datei.", "Gadgetbridge → activity → share. The .json file."))
+        Step(4, "02", tr("Route", "Route"), tr("Optional: GPX, KML oder KMZ, zum Beispiel aus OpenTracks.", "Optional: GPX, KML or KMZ, for example from OpenTracks."))
+        Step(5, "03", "PNG", tr("Overlay gestalten, speichern, in Instagram als Foto-Sticker einfügen.", "Style the overlay, save it, add it as a photo sticker in Instagram."))
         Box(Modifier.fillMaxWidth().height(1.dp).background(Hairline))
         Spacer(Modifier.height(40.dp))
 
@@ -93,10 +94,10 @@ fun ImportScreen(state: UiState, onOpen: (List<android.net.Uri>) -> Unit) {
             )
             Spacer(Modifier.height(16.dp))
         }
-        BigButton("Dateien wählen", Modifier.reveal(6), busy = state.loading) { picker.launch(PICK_TYPES) }
+        BigButton(tr("Dateien wählen", "Choose files"), Modifier.reveal(6), busy = state.loading) { picker.launch(PICK_TYPES) }
         Spacer(Modifier.height(12.dp))
         Text(
-            "JSON und Route gehen auch zusammen in einem Rutsch.",
+            tr("JSON und Route gehen auch zusammen in einem Rutsch.", "You can pick the JSON and the route together."),
             style = Type.body.copy(fontSize = Type.label.fontSize * 1.15f),
             modifier = Modifier.align(androidx.compose.ui.Alignment.CenterHorizontally).reveal(6)
         )

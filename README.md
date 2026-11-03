@@ -49,6 +49,10 @@ Gadgetbridge, which syncs Mi Band, Amazfit and other watches without the vendor'
   <img src="docs/bilder/photo-swim-lake.jpg" width="200" alt="FitShare swim stats in one row at the bottom of a lake photo at sunrise, the shade fading up from the bottom edge">
 </p>
 <p align="center">
+  <img src="docs/bilder/photo-hike-heart.jpg" width="200" alt="FitShare hike: distance, time and pace with a heart rate graph and heart rate zones above an alpine trail leading to a mountain hut">
+  <img src="docs/bilder/photo-climb-profile.jpg" width="200" alt="FitShare ride: distance, time and speed with elevation profile and heart rate graph above a mountain pass with hairpin bends">
+</p>
+<p align="center">
   <img src="docs/bilder/1-night.png" width="200" alt="FitShare full story in the Night style: dark background, glowing route, heart rate zones and a stats table">
   <img src="docs/bilder/2-race-bib.png" width="200" alt="FitShare full story in the Race bib style: paper look with an orange header band, route and stats">
 </p>

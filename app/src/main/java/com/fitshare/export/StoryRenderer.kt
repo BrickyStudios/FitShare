@@ -110,8 +110,8 @@ object StoryRenderer {
         val shade = if (o.ink == InkColor.BLACK) Color.WHITE else Color.BLACK
         if (dim > 0f && o.fade) {
             c.drawRect(0f, 0f, W, H, Paint().apply {
-                shader = LinearGradient(0f, 0f, 0f, H, intArrayOf(Color.TRANSPARENT, alpha(shade, dim), alpha(shade, dim), Color.TRANSPARENT),
-                    fadeStops(top, top + sh, H), Shader.TileMode.CLAMP)
+                val (pos, share) = fadeStops(o.place, top, top + sh, H)
+                shader = LinearGradient(0f, 0f, 0f, H, share.map { alpha(shade, dim * it) }.toIntArray(), pos, Shader.TileMode.CLAMP)
             })
         } else if (dim > 0f) c.drawColor(alpha(shade, dim))
         c.drawBitmap(sticker, null, RectF((W - sw) / 2, top, (W + sw) / 2, top + sh), Paint(Paint.FILTER_BITMAP_FLAG))

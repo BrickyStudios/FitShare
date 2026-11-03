@@ -97,11 +97,22 @@ fun stickerTop(place: Int, stickerH: Float, h: Float): Float = when (place) {
     else -> (h - stickerH) / 2
 }.coerceIn(0f, (h - stickerH).coerceAtLeast(0f))
 
-/** Gradient stops (fractions of [h]) for the faded shade: full over the sticker [y0]..[y1], gone a quarter story away. */
-fun fadeStops(y0: Float, y1: Float, h: Float): FloatArray {
-    val reach = h * 0.25f
-    return floatArrayOf((y0 - reach).coerceAtLeast(0f), y0, y1.coerceAtLeast(y0), (y1 + reach).coerceAtMost(h).coerceAtLeast(y1))
-        .map { (it / h).coerceIn(0f, 1f) }.toFloatArray()
+/**
+ * Shade for "gradient": comes in from the story edge nearest the sticker (bottom for middle and bottom,
+ * top for top), stays full up to the sticker and eases out a bit past its far side, so it reads as light, not a band.
+ * Returns positions (fractions of [h], ascending) and the share of the darken level at each.
+ */
+fun fadeStops(place: Int, y0: Float, y1: Float, h: Float): Pair<FloatArray, FloatArray> {
+    val tail = h * 0.14f
+    val fromTop = place == 1
+    val far = if (fromTop) y1 else y0
+    val reach = if (fromTop) (y1 + tail).coerceAtMost(h) else (y0 - tail).coerceAtLeast(0f)
+    val mid = (y0 + y1) / 2
+    val tailMid = (far + reach) / 2
+    val pos = if (fromTop) floatArrayOf(0f, y0, mid, y1, tailMid, reach) else floatArrayOf(reach, tailMid, y0, mid, y1, h)
+    val share = if (fromTop) floatArrayOf(1f, 1f, 0.8f, 0.45f, 0.15f, 0f) else floatArrayOf(0f, 0.15f, 0.45f, 0.8f, 1f, 1f)
+    var last = 0f
+    return Pair(pos.map { v -> (v / h).coerceIn(last, 1f).also { last = it } }.toFloatArray(), share)
 }
 
 /**

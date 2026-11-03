@@ -6,11 +6,17 @@ import org.junit.Test
 
 class PhotoPlacementTest {
     @Test fun stopsStayOrderedAndInRange() {
-        for ((y0, y1) in listOf(0f to 400f, 150f to 900f, 1200f to 1920f, 700f to 700f)) {
-            val s = fadeStops(y0, y1, 1920f)
-            assertEquals(4, s.size)
-            assertTrue("$y0..$y1 → ${s.toList()}", s.toList().zipWithNext().all { (a, b) -> a <= b } && s.all { it in 0f..1f })
+        for (place in 0..2) for ((y0, y1) in listOf(0f to 400f, 150f to 900f, 1200f to 1920f, 700f to 700f)) {
+            val (pos, share) = fadeStops(place, y0, y1, 1920f)
+            assertEquals(6, pos.size); assertEquals(6, share.size)
+            assertTrue("$place $y0..$y1 → ${pos.toList()}", pos.toList().zipWithNext().all { (a, b) -> a <= b } && pos.all { it in 0f..1f })
         }
+    }
+
+    @Test fun shadeComesFromTheNearestEdge() {
+        assertEquals(1f, fadeStops(2, 1300f, 1760f, 1920f).second.last())  // bottom: darkest at the bottom edge
+        assertEquals(1f, fadeStops(1, 150f, 600f, 1920f).second.first())   // top: darkest at the top edge
+        assertEquals(0f, fadeStops(0, 700f, 1200f, 1920f).second.first())  // middle: clear sky above
     }
 
     @Test fun stickerStaysOnTheStory() {

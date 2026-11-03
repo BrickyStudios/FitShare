@@ -230,10 +230,13 @@ test("start screen sources and demo", () => {
 
 test("photo-in-PNG placement and gradient stops stay on the story", async () => {
   const { fadeStops, stickerTop } = await import("../docs/app/js/render.js");
-  for (const [y0, y1] of [[0, 400], [150, 900], [1200, 1920], [700, 700]]) {
-    const s = fadeStops(y0, y1, 1920);
-    assert.ok(s.every((v, i) => v >= 0 && v <= 1 && (i === 0 || v >= s[i - 1])), `${y0}..${y1} → ${s}`);
+  for (const place of [0, 1, 2]) for (const [y0, y1] of [[0, 400], [150, 900], [1200, 1920], [700, 700]]) {
+    const { pos: s, share } = fadeStops(place, y0, y1, 1920);
+    assert.equal(share.length, s.length);
+    assert.ok(s.every((v, i) => v >= 0 && v <= 1 && (i === 0 || v >= s[i - 1])), `${place} ${y0}..${y1} → ${s}`);
   }
+  assert.equal(fadeStops(2, 1300, 1760, 1920).share.at(-1), 1); // bottom: darkest at the bottom edge
+  assert.equal(fadeStops(1, 150, 600, 1920).share[0], 1); // top: darkest at the top edge
   for (const place of [0, 1, 2]) for (const h of [300, 1700, 2500]) {
     const top = stickerTop(place, h, 1920);
     assert.ok(top >= 0 && (top + h <= 1920 || top === 0), `place ${place} h ${h} top ${top}`);

@@ -29,10 +29,14 @@ export function stickerTop(place, stickerH, h) {
   const y = place === 1 ? h * 0.08 : place === 2 ? h * 0.92 - stickerH : (h - stickerH) / 2;
   return Math.min(Math.max(0, y), Math.max(0, h - stickerH));
 }
-/** Gradient stops (fractions of h): full shade over the sticker y0..y1, gone a quarter story away. */
-export function fadeStops(y0, y1, h) {
-  const r = h * 0.25, c = (v) => Math.min(1, Math.max(0, v / h));
-  return [c(Math.max(0, y0 - r)), c(y0), c(Math.max(y0, y1)), c(Math.max(y1, Math.min(h, y1 + r)))];
+/** Shade for "gradient": from the story edge nearest the sticker, full up to it, easing out past its far side. Mirrors Overlay.kt. */
+export function fadeStops(place, y0, y1, h) {
+  const tail = h * 0.14, fromTop = place === 1, far = fromTop ? y1 : y0;
+  const reach = fromTop ? Math.min(h, y1 + tail) : Math.max(0, y0 - tail), mid = (y0 + y1) / 2, tailMid = (far + reach) / 2;
+  const pos = fromTop ? [0, y0, mid, y1, tailMid, reach] : [reach, tailMid, y0, mid, y1, h];
+  const share = fromTop ? [1, 1, 0.8, 0.45, 0.15, 0] : [0, 0.15, 0.45, 0.8, 1, 1];
+  let last = 0;
+  return { pos: pos.map((v) => (last = Math.min(1, Math.max(last, v / h)))), share };
 }
 
 const INK = "#14140F", PAPER = "#EFEBE1", BONE = "#F4F1EA", NIGHT = "#0C0D0B";
@@ -350,8 +354,8 @@ function stickerOnPhoto(workout, o, photo, scale) {
   const top = stickerTop(o.place, sh, H);
   const dim = DIM_LEVELS[o.dim] ?? 0, shade = o.ink === "BLACK" ? "#FFFFFF" : "#000000";
   if (dim > 0 && o.fade) {
-    const g = c.createLinearGradient(0, 0, 0, H), s = fadeStops(top, top + sh, H);
-    [0, dim, dim, 0].forEach((a, i) => g.addColorStop(s[i], alpha(shade, a)));
+    const g = c.createLinearGradient(0, 0, 0, H), { pos, share } = fadeStops(o.place, top, top + sh, H);
+    pos.forEach((p, i) => g.addColorStop(p, alpha(shade, dim * share[i])));
     c.fillStyle = g; c.fillRect(0, 0, W, H);
   } else if (dim > 0) { c.fillStyle = alpha(shade, dim); c.fillRect(0, 0, W, H); }
   c.drawImage(sticker, (W - sw) / 2, top, sw, sh);

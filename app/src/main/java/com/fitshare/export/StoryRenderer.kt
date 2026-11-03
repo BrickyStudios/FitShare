@@ -78,7 +78,10 @@ object StoryRenderer {
         format: StoryFormat = StoryFormat.STORY
     ): Bitmap {
         val h = format.height
-        if (style == StoryStyle.OVERLAY) return OverlayRenderer.render(context, workout, overlay, scale)
+        if (style == StoryStyle.OVERLAY) {
+            return if (overlay.withPhoto && background != null) stickerOnPhoto(context, workout, overlay, background, scale)
+            else OverlayRenderer.render(context, workout, overlay, scale)
+        }
         val bmp = Bitmap.createBitmap((W * scale).roundToInt(), (h * scale).roundToInt(), Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         c.scale(scale, scale)
@@ -91,6 +94,43 @@ object StoryRenderer {
         drawBackground(c, style, accent, background, h)
         drawContent(c, context, workout, style, pal, h)
         return bmp
+    }
+
+    /** The overlay baked onto the photo as a finished 9:16 story; here "darken" dims the whole photo evenly. */
+    private fun stickerOnPhoto(context: Context, workout: Workout, o: OverlayOptions, photo: Bitmap, scale: Float): Bitmap {
+        val bmp = Bitmap.createBitmap((W * scale).roundToInt(), (H * scale).roundToInt(), Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.scale(scale, scale)
+        if (o.soft) softened(photo).also { drawCropped(c, it, H); it.recycle() } else drawCropped(c, photo, H)
+        val sticker = OverlayRenderer.render(context, workout, o.copy(dim = 0), 1f)
+        val k = minOf(SIZES.getOrElse(o.size) { 1f }, H * 0.9f / sticker.height)
+        val sw = W * k; val sh = sticker.height * k
+        val top = stickerTop(o.place, sh, H)
+        val dim = DIM_LEVELS.getOrElse(o.dim) { 0f }
+        val shade = if (o.ink == InkColor.BLACK) Color.WHITE else Color.BLACK
+        if (dim > 0f && o.fade) {
+            c.drawRect(0f, 0f, W, H, Paint().apply {
+                shader = LinearGradient(0f, 0f, 0f, H, intArrayOf(Color.TRANSPARENT, alpha(shade, dim), alpha(shade, dim), Color.TRANSPARENT),
+                    fadeStops(top, top + sh, H), Shader.TileMode.CLAMP)
+            })
+        } else if (dim > 0f) c.drawColor(alpha(shade, dim))
+        c.drawBitmap(sticker, null, RectF((W - sw) / 2, top, (W + sw) / 2, top + sh), Paint(Paint.FILTER_BITMAP_FLAG))
+        sticker.recycle()
+        return bmp
+    }
+
+    /** Cheap strong blur: halve with filtering down to 1/16, then scale back up in steps so it stays smooth. */
+    private fun softened(src: Bitmap): Bitmap {
+        var b = src
+        repeat(4) {
+            val next = Bitmap.createScaledBitmap(b, max(1, b.width / 2), max(1, b.height / 2), true)
+            if (b !== src) b.recycle(); b = next
+        }
+        while (b.width < src.width) {
+            val next = Bitmap.createScaledBitmap(b, minOf(src.width, b.width * 2), minOf(src.height, b.height * 2), true)
+            b.recycle(); b = next
+        }
+        return b
     }
 
     // ---------------------------------------------------------------- background

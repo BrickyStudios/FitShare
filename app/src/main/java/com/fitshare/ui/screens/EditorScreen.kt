@@ -18,6 +18,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -77,7 +79,13 @@ import com.fitshare.data.StatKey
 import com.fitshare.data.availableStats
 import com.fitshare.data.pickStats
 import com.fitshare.data.tr
+import com.fitshare.export.DIM_LEVELS
 import com.fitshare.export.InkColor
+import com.fitshare.export.PLACE_ORDER
+import com.fitshare.export.SIZE_ORDER
+import com.fitshare.export.placeLabel
+import com.fitshare.export.sizeLabel
+import com.fitshare.export.dimLabel
 import com.fitshare.export.OverlayLayout
 import com.fitshare.export.OverlayOptions
 import com.fitshare.export.ShareHelper
@@ -100,7 +108,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
 
 private enum class Section(val de: String, val en: String) {
-    LOOKS("Looks", "Looks"), LAYOUT("Layout", "Layout"), STATS("Werte", "Stats"), COLOR("Farbe", "Colour"), EXTRAS("Extras", "Extras"), SPORT("Sport", "Sport");
+    LOOKS("Looks", "Looks"), LAYOUT("Layout", "Layout"), STATS("Werte", "Stats"), COLOR("Farbe", "Colour"), PHOTO("Foto", "Photo"), EXTRAS("Extras", "Extras"), SPORT("Sport", "Sport");
     val label get() = tr(de, en)
 }
 
@@ -185,6 +193,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         ) { page ->
             val pageStyle = StoryStyle.entries[page]
             val isOverlay = pageStyle == StoryStyle.OVERLAY
+            val baked = isOverlay && overlay.withPhoto && background != null // photo is part of the PNG
             val preview by produceState<Bitmap?>(null, workout, pageStyle, background, overlay, format) {
                 value = withContext(Dispatchers.Default) { StoryRenderer.render(ctx, workout, pageStyle, background, 0.5f, overlay, format) }
             }
@@ -205,13 +214,13 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                     contentAlignment = Alignment.Center
                 ) {
                     // the overlay is previewed on your photo if you picked one; the PNG itself stays transparent
-                    if (isOverlay && background != null) {
+                    if (isOverlay && background != null && !baked) {
                         Image(background!!.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     }
                     Crossfade(preview, label = "preview") { bmp ->
                         if (bmp != null) Image(
                             bmp.asImageBitmap(), null,
-                            Modifier.fillMaxSize().padding(if (isOverlay) 18.dp else 0.dp),
+                            Modifier.fillMaxSize().padding(if (isOverlay && !baked) 18.dp else 0.dp),
                             contentScale = ContentScale.Fit
                         )
                     }
@@ -226,12 +235,13 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
 
         Spacer(Modifier.height(6.dp))
 
-        // overlay: sectioned controls like a photo editor; full stories: just the sport
+        // overlay: sectioned controls like a photo editor; full stories: just the sport. "Photo" only once there is one.
+        val sections = Section.entries.filter { it != Section.PHOTO || state.background != null }
+        val activeSection = if (style != StoryStyle.OVERLAY) Section.SPORT else if (section in sections) section else Section.LAYOUT
         if (style == StoryStyle.OVERLAY) {
-            TabRow(Section.entries.map { it.label }, section.ordinal, accent, small = true) { section = Section.entries[it] }
+            TabRow(sections.map { it.label }, sections.indexOf(activeSection), accent, small = true) { section = sections[it] }
             Spacer(Modifier.height(6.dp))
         }
-        val activeSection = if (style == StoryStyle.OVERLAY) section else Section.SPORT
         AnimatedContent(activeSection, label = "controls") { sec ->
             ChipRow {
                 when (sec) {
@@ -264,9 +274,16 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                             }
                         }
                     }
-                    Section.COLOR -> InkColor.entries.forEach { ink ->
-                        val dot = when (ink) { InkColor.WHITE -> Color.White; InkColor.BLACK -> Color(0xFF14140F); InkColor.SPORT -> accent }
-                        Chip(ink.label, overlay.ink == ink, accent, dot = dot) { vm.updateOverlay { it.copy(ink = ink) } }
+                    Section.COLOR -> {
+                        InkColor.entries.forEach { ink ->
+                            val dot = when (ink) { InkColor.WHITE -> Color.White; InkColor.BLACK -> Color(0xFF14140F); InkColor.SPORT -> accent }
+                            Chip(ink.label, overlay.ink == ink, accent, dot = dot) { vm.updateOverlay { it.copy(ink = ink) } }
+                        }
+                        // black ink needs a lighter, not a darker, background
+                        Hint(if (overlay.ink == InkColor.BLACK) tr("AUFHELLEN", "LIGHTEN") else tr("ABDUNKELN", "DARKEN"))
+                        DIM_LEVELS.indices.forEach { i ->
+                            Chip(dimLabel(i), overlay.dim == i, accent) { vm.updateOverlay { it.copy(dim = i) } }
+                        }
                     }
                     Section.EXTRAS -> {
                         val r = workout.route
@@ -277,6 +294,18 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         if (workout.stats.hrZoneSeconds.sum() > 0) Chip(tr("Pulszonen", "HR zones"), overlay.showZones, accent) { vm.updateOverlay { it.copy(showZones = !it.showZones) } }
                         if (workout.startMillis != null) Chip(tr("Datum", "Date"), overlay.showDate, accent) { vm.updateOverlay { it.copy(showDate = !it.showDate) } }
                         Chip("Logo", overlay.showBrand, accent) { vm.updateOverlay { it.copy(showBrand = !it.showBrand) } }
+                    }
+                    Section.PHOTO -> {
+                        Chip(tr("Foto ins PNG", "Photo in PNG"), overlay.withPhoto, accent) { vm.updateOverlay { it.copy(withPhoto = !it.withPhoto) } }
+                        if (!overlay.withPhoto) Hint(tr("Dann gehen Position, Größe, Verlauf und Weich", "Unlocks position, size, gradient and blur"))
+                        else {
+                            Hint(tr("POSITION", "POSITION"))
+                            PLACE_ORDER.forEach { i -> Chip(placeLabel(i), overlay.place == i, accent) { vm.updateOverlay { it.copy(place = i) } } }
+                            Hint(tr("GRÖSSE", "SIZE"))
+                            SIZE_ORDER.forEach { i -> Chip(sizeLabel(i), overlay.size == i, accent) { vm.updateOverlay { it.copy(size = i) } } }
+                            Chip(tr("Verlauf", "Gradient"), overlay.fade, accent) { vm.updateOverlay { it.copy(fade = !it.fade) } }
+                            Chip(tr("Weich", "Blur"), overlay.soft, accent) { vm.updateOverlay { it.copy(soft = !it.soft) } }
+                        }
                     }
                     Section.SPORT -> {
                         // full stories: format first (story or feed post), then the sport
@@ -357,7 +386,8 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             }
         }
         Text(
-            if (style == StoryStyle.OVERLAY) tr("Instagram: Story öffnen → Sticker → Foto → PNG wählen", "Instagram: open a story → Stickers → Photo → pick the PNG")
+            if (style == StoryStyle.OVERLAY && overlay.withPhoto && background != null) tr("Fertige Story 1080 × 1920 mit deinem Foto", "Finished 1080 × 1920 story with your photo")
+            else if (style == StoryStyle.OVERLAY) tr("Instagram: Story öffnen → Sticker → Foto → PNG wählen", "Instagram: open a story → Stickers → Photo → pick the PNG")
             else if (format == StoryFormat.FEED) tr("Fertiger Beitrag 1080 × 1350 für den Instagram-Feed", "Finished 1080 × 1350 post for the Instagram feed")
             else tr("Fertige Story 1080 × 1920, als Hintergrund in Instagram", "Finished 1080 × 1920 story, use it as the Instagram background"),
             style = Type.body.copy(fontSize = Type.label.fontSize * 1.1f),
@@ -374,20 +404,23 @@ internal fun toggleStat(current: List<StatKey>, key: StatKey, max: Int): List<St
 
 @Composable
 private fun TabRow(labels: List<String>, selectedIndex: Int, accent: Color, small: Boolean = false, onSelect: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-        labels.forEachIndexed { i, text ->
-            val selected = selectedIndex == i
-            val color by animateColorAsState(if (selected) Bone else Muted.copy(alpha = 0.45f), uiSpring(), label = "tab")
-            Column(
-                Modifier
-                    .pressable { onSelect(i) }
-                    .heightIn(min = if (small) 36.dp else 44.dp)
-                    .padding(horizontal = if (small) 6.dp else 14.dp, vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text.uppercase(), style = Type.label.copy(color = color, fontSize = if (small) Type.label.fontSize * 0.95f else Type.label.fontSize), maxLines = 1, softWrap = false)
-                Spacer(Modifier.height(5.dp))
-                Box(Modifier.size(if (small) 4.dp else 5.dp).clip(CircleShape).background(if (selected) accent else Color.Transparent))
+    // centred when it fits, scrolls sideways when seven section tabs don't
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        Row(Modifier.horizontalScroll(rememberScrollState()).widthIn(min = maxWidth), horizontalArrangement = Arrangement.Center) {
+            labels.forEachIndexed { i, text ->
+                val selected = selectedIndex == i
+                val color by animateColorAsState(if (selected) Bone else Muted.copy(alpha = 0.45f), uiSpring(), label = "tab")
+                Column(
+                    Modifier
+                        .pressable { onSelect(i) }
+                        .heightIn(min = if (small) 36.dp else 44.dp)
+                        .padding(horizontal = if (small) 6.dp else 14.dp, vertical = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text.uppercase(), style = Type.label.copy(color = color, fontSize = if (small) Type.label.fontSize * 0.95f else Type.label.fontSize), maxLines = 1, softWrap = false)
+                    Spacer(Modifier.height(5.dp))
+                    Box(Modifier.size(if (small) 4.dp else 5.dp).clip(CircleShape).background(if (selected) accent else Color.Transparent))
+                }
             }
         }
     }

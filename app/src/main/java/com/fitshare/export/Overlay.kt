@@ -5,8 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
@@ -58,8 +60,49 @@ data class OverlayOptions(
     val showHeart: Boolean = false,
     val showSplits: Boolean = false,
     val showDate: Boolean = false,
-    val showBrand: Boolean = true
+    val showBrand: Boolean = true,
+    /** Index into [DIM_LEVELS]: darkens behind the numbers (lightens with black ink). */
+    val dim: Int = 0,
+    /** Bake the picked photo into a full 9:16 story instead of exporting a transparent sticker. */
+    val withPhoto: Boolean = false,
+    // photo-in-PNG only. Index 0 is always the original look, because Gson fills missing fields with 0.
+    /** Index into [PLACES]. */
+    val place: Int = 0,
+    /** Index into [SIZES]. */
+    val size: Int = 0,
+    /** Darken as a gradient around the numbers instead of evenly. */
+    val fade: Boolean = false,
+    /** Blur the photo so the numbers stand out. */
+    val soft: Boolean = false
 )
+
+/** Off, light, medium, strong. */
+val DIM_LEVELS = floatArrayOf(0f, 0.25f, 0.45f, 0.65f)
+
+fun dimLabel(i: Int) = listOf(tr("Aus", "Off"), tr("Leicht", "Light"), tr("Mittel", "Medium"), tr("Stark", "Strong"))[i]
+
+/** Middle, top, bottom; shown top → middle → bottom via [PLACE_ORDER]. */
+val PLACE_ORDER = intArrayOf(1, 0, 2)
+fun placeLabel(i: Int) = listOf(tr("Mitte", "Middle"), tr("Oben", "Top"), tr("Unten", "Bottom"))[i]
+
+/** Width share of the story: L, M, S; shown S → M → L via [SIZE_ORDER]. */
+val SIZES = floatArrayOf(1f, 0.8f, 0.6f)
+val SIZE_ORDER = intArrayOf(2, 1, 0)
+fun sizeLabel(i: Int) = listOf("L", "M", "S")[i]
+
+/** Top edge of the sticker on the photo for [PLACES] index [place]. */
+fun stickerTop(place: Int, stickerH: Float, h: Float): Float = when (place) {
+    1 -> h * 0.08f
+    2 -> h * 0.92f - stickerH
+    else -> (h - stickerH) / 2
+}.coerceIn(0f, (h - stickerH).coerceAtLeast(0f))
+
+/** Gradient stops (fractions of [h]) for the faded shade: full over the sticker [y0]..[y1], gone a quarter story away. */
+fun fadeStops(y0: Float, y1: Float, h: Float): FloatArray {
+    val reach = h * 0.25f
+    return floatArrayOf((y0 - reach).coerceAtLeast(0f), y0, y1.coerceAtLeast(y0), (y1 + reach).coerceAtMost(h).coerceAtLeast(y1))
+        .map { (it / h).coerceIn(0f, 1f) }.toFloatArray()
+}
 
 /**
  * Transparent PNG cropped to its content, meant to be added as a photo sticker on top of
@@ -71,6 +114,7 @@ object OverlayRenderer {
 
     private const val GAP = 36f
     private const val PAD = 44f
+    private const val SCRIM_PAD = 120f // the soft shade needs room to fade out before the PNG's edge
 
     fun render(context: Context, workout: Workout, o: OverlayOptions, scale: Float = 1f): Bitmap {
         val accent = workout.sport.accent
@@ -299,14 +343,26 @@ object OverlayRenderer {
         val inner = PAD + blocks.sumOf { it.height.toDouble() }.toFloat() + GAP * (blocks.size - 1).coerceAtLeast(0) + PAD
         val cardPad = 56f
         val margin = 60f // room for the card's shadow
-        val height = if (card) inner + 2 * cardPad + 2 * margin - 2 * PAD else inner
+        val contentH = if (card) inner + 2 * cardPad + 2 * margin - 2 * PAD else inner
+        val scrim = DIM_LEVELS.getOrElse(o.dim) { 0f }
+        val sPad = if (scrim > 0f) SCRIM_PAD else 0f
+        val height = contentH + 2 * sPad
 
         val bmp = Bitmap.createBitmap((W * scale).roundToInt(), (height * scale).roundToInt(), Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         c.scale(scale, scale)
+        if (scrim > 0f) {
+            // elliptical shade that reaches zero at the PNG's edges, so it never shows as a box in Instagram
+            val base = if (o.ink == InkColor.BLACK) Color.WHITE else Color.BLACK
+            val g = RadialGradient(0f, 0f, 1f, intArrayOf(alpha(base, scrim), alpha(base, scrim * 0.85f), Color.TRANSPARENT),
+                floatArrayOf(0f, 0.6f, 1f), Shader.TileMode.CLAMP)
+            g.setLocalMatrix(Matrix().apply { setScale(W / 2, height / 2); postTranslate(W / 2, height / 2) })
+            c.drawRect(0f, 0f, W, height, Paint().apply { shader = g })
+            c.translate(0f, sPad)
+        }
         var y = PAD
         if (card) {
-            val rect = RectF(cx - cw / 2 - cardPad, margin, cx + cw / 2 + cardPad, height - margin)
+            val rect = RectF(cx - cw / 2 - cardPad, margin, cx + cw / 2 + cardPad, contentH - margin)
             val glass = when (o.ink) { InkColor.BLACK -> alpha(Color.WHITE, 0.66f); else -> alpha(Color.BLACK, 0.42f) }
             c.drawRoundRect(rect, 64f, 64f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = glass; setShadowLayer(48f, 0f, 18f, 0x38000000)

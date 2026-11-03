@@ -12,8 +12,28 @@ export const STYLES = { OVERLAY: ["Overlay", "Overlay"], NIGHT: ["Nacht", "Night
 export const FORMATS = { STORY: ["9:16", 1920], FEED: ["4:5", 1350] };
 export const defaultOverlay = () => ({
   layout: "STACK", ink: "WHITE", stats: null, showRoute: true, showProfile: false, showZones: false,
-  showHeart: false, showSplits: false, showDate: false, showBrand: true,
+  showHeart: false, showSplits: false, showDate: false, showBrand: true, dim: 0, withPhoto: false,
+  // photo-in-PNG only; index 0 is always the original look
+  place: 0, size: 0, fade: false, soft: false,
 });
+/** Off, light, medium, strong. */
+export const DIM_LEVELS = [0, 0.25, 0.45, 0.65];
+export const DIM_LABELS = [["Aus", "Off"], ["Leicht", "Light"], ["Mittel", "Medium"], ["Stark", "Strong"]];
+/** Index = stored value, array order = how the chips are shown. */
+export const PLACES = [[1, "Oben", "Top"], [0, "Mitte", "Middle"], [2, "Unten", "Bottom"]];
+export const SIZES = [1, 0.8, 0.6];
+export const SIZE_CHIPS = [[2, "S"], [1, "M"], [0, "L"]];
+
+/** Top edge of the sticker on the photo. */
+export function stickerTop(place, stickerH, h) {
+  const y = place === 1 ? h * 0.08 : place === 2 ? h * 0.92 - stickerH : (h - stickerH) / 2;
+  return Math.min(Math.max(0, y), Math.max(0, h - stickerH));
+}
+/** Gradient stops (fractions of h): full shade over the sticker y0..y1, gone a quarter story away. */
+export function fadeStops(y0, y1, h) {
+  const r = h * 0.25, c = (v) => Math.min(1, Math.max(0, v / h));
+  return [c(Math.max(0, y0 - r)), c(y0), c(Math.max(y0, y1)), c(Math.max(y1, Math.min(h, y1 + r)))];
+}
 
 const INK = "#14140F", PAPER = "#EFEBE1", BONE = "#F4F1EA", NIGHT = "#0C0D0B";
 const ZONE_COLORS = ["#5AA9FF", "#3DDC97", "#FFD23F", "#FF8A3D", "#FF3D5A"];
@@ -110,6 +130,7 @@ function drawRoute(c, route, box, style, pal, accent) {
 // ------------------------------------------------------------------ overlay sticker
 
 const GAP = 36, PAD = 44;
+const SCRIM_PAD = 120; // the soft shade needs room to fade out before the PNG's edge
 
 /** Transparent PNG cropped to its content; built as a stack of blocks so every option combination fits. */
 export function renderOverlay(workout, o, scale = 1) {
@@ -270,13 +291,24 @@ export function renderOverlay(workout, o, scale = 1) {
 
   const inner = PAD + list.reduce((a, b) => a + b.h, 0) + GAP * Math.max(0, list.length - 1) + PAD;
   const cardPad = 56, margin = 60; // margin: room for the card's shadow
-  const height = card ? inner + 2 * cardPad + 2 * margin - 2 * PAD : inner;
+  const contentH = card ? inner + 2 * cardPad + 2 * margin - 2 * PAD : inner;
+  const scrim = DIM_LEVELS[o.dim] ?? 0, sPad = scrim > 0 ? SCRIM_PAD : 0;
+  const height = contentH + 2 * sPad;
   const cv = newCanvas(W * scale, height * scale);
   const c = cv.getContext("2d");
   c.scale(scale, scale);
+  if (scrim > 0) {
+    // elliptical shade that reaches zero at the PNG's edges, so it never shows as a box in Instagram
+    const base = o.ink === "BLACK" ? "#FFFFFF" : "#000000";
+    c.save(); c.translate(W / 2, height / 2); c.scale(W / 2, height / 2);
+    const g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
+    g.addColorStop(0, alpha(base, scrim)); g.addColorStop(0.6, alpha(base, scrim * 0.85)); g.addColorStop(1, alpha(base, 0));
+    c.fillStyle = g; c.fillRect(-1, -1, 2, 2); c.restore();
+    c.translate(0, sPad);
+  }
   let y = PAD;
   if (card) {
-    const r = { x: cx - cw / 2 - cardPad, y: margin, w: cw + 2 * cardPad, h: height - 2 * margin };
+    const r = { x: cx - cw / 2 - cardPad, y: margin, w: cw + 2 * cardPad, h: contentH - 2 * margin };
     c.save();
     c.fillStyle = o.ink === "BLACK" ? "rgba(255,255,255,.66)" : "rgba(0,0,0,.42)";
     c.shadowColor = "rgba(0,0,0,.22)"; c.shadowBlur = 48; c.shadowOffsetY = 18;
@@ -306,8 +338,38 @@ function drawCropped(c, img, h) {
 }
 
 /** 1080×1920 story or 1080×1350 feed post. The editor preview calls this at a smaller scale. */
+/** The overlay baked onto the photo as a finished 9:16 story; here "darken" dims the whole photo evenly. */
+function stickerOnPhoto(workout, o, photo, scale) {
+  const H = FORMATS.STORY[1];
+  const cv = newCanvas(W * scale, H * scale);
+  const c = cv.getContext("2d");
+  c.scale(scale, scale);
+  drawCropped(c, o.soft ? softened(photo) : photo, H);
+  const sticker = renderOverlay(workout, { ...o, dim: 0 }, 1);
+  const k = Math.min(SIZES[o.size] ?? 1, (H * 0.9) / sticker.height), sw = W * k, sh = sticker.height * k;
+  const top = stickerTop(o.place, sh, H);
+  const dim = DIM_LEVELS[o.dim] ?? 0, shade = o.ink === "BLACK" ? "#FFFFFF" : "#000000";
+  if (dim > 0 && o.fade) {
+    const g = c.createLinearGradient(0, 0, 0, H), s = fadeStops(top, top + sh, H);
+    [0, dim, dim, 0].forEach((a, i) => g.addColorStop(s[i], alpha(shade, a)));
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+  } else if (dim > 0) { c.fillStyle = alpha(shade, dim); c.fillRect(0, 0, W, H); }
+  c.drawImage(sticker, (W - sw) / 2, top, sw, sh);
+  return cv;
+}
+
+/** Strong blur without ctx.filter (Safari lacks it): halve down to 1/16, scale back up in steps. */
+function softened(img) {
+  const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+  let cur = img, w = w0, h = h0;
+  const step = (nw, nh) => { const cv = newCanvas(nw, nh), x = cv.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(cur, 0, 0, nw, nh); cur = cv; w = cv.width; h = cv.height; };
+  for (let i = 0; i < 4; i++) step(Math.max(1, Math.floor(w / 2)), Math.max(1, Math.floor(h / 2)));
+  while (w < w0) step(Math.min(w0, w * 2), Math.min(h0, h * 2));
+  return cur;
+}
+
 export function render(workout, style, background, overlay, format = "STORY", scale = 1) {
-  if (style === "OVERLAY") return renderOverlay(workout, overlay, scale);
+  if (style === "OVERLAY") return overlay.withPhoto && background ? stickerOnPhoto(workout, overlay, background, scale) : renderOverlay(workout, overlay, scale);
   const h = FORMATS[format][1];
   const cv = newCanvas(W * scale, h * scale);
   const c = cv.getContext("2d");

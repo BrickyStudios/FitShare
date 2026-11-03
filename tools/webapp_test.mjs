@@ -227,3 +227,16 @@ test("start screen sources and demo", () => {
   assert.equal(stats.hrCurve.length, 120);
   assert.equal(stats.sport, "CYCLING");
 });
+
+test("photo-in-PNG placement and gradient stops stay on the story", async () => {
+  const { fadeStops, stickerTop } = await import("../docs/app/js/render.js");
+  for (const [y0, y1] of [[0, 400], [150, 900], [1200, 1920], [700, 700]]) {
+    const s = fadeStops(y0, y1, 1920);
+    assert.ok(s.every((v, i) => v >= 0 && v <= 1 && (i === 0 || v >= s[i - 1])), `${y0}..${y1} → ${s}`);
+  }
+  for (const place of [0, 1, 2]) for (const h of [300, 1700, 2500]) {
+    const top = stickerTop(place, h, 1920);
+    assert.ok(top >= 0 && (top + h <= 1920 || top === 0), `place ${place} h ${h} top ${top}`);
+  }
+  assert.equal(stickerTop(0, 400, 1920), 760);
+});

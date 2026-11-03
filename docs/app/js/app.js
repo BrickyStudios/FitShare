@@ -1,6 +1,6 @@
 // FitShare web app: state, file import, OCR, editor UI and export.
 import * as D from "./data.js";
-import { FORMATS, INKS, LAYOUTS, STYLES, defaultOverlay, render } from "./render.js";
+import { DIM_LABELS, PLACES, SIZE_CHIPS, FORMATS, INKS, LAYOUTS, STYLES, defaultOverlay, render } from "./render.js";
 
 const { tr } = D;
 const $ = (id) => document.getElementById(id);
@@ -15,7 +15,7 @@ const store = {
   get(k, fallback) { try { const v = localStorage.getItem("fs." + k); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } },
   set(k, v) { try { if (v == null) localStorage.removeItem("fs." + k); else localStorage.setItem("fs." + k, JSON.stringify(v)); } catch { /* private mode or full */ } },
 };
-const cleanOverlay = (o) => ({ ...defaultOverlay(), ...(o && typeof o === "object" ? o : {}), layout: LAYOUTS[o?.layout] ? o.layout : "STACK", ink: INKS[o?.ink] ? o.ink : "WHITE" });
+const cleanOverlay = (o) => ({ ...defaultOverlay(), ...(o && typeof o === "object" ? o : {}), layout: LAYOUTS[o?.layout] ? o.layout : "STACK", ink: INKS[o?.ink] ? o.ink : "WHITE", dim: DIM_LABELS[o?.dim] ? o.dim : 0, place: [0, 1, 2].includes(o?.place) ? o.place : 0, size: [0, 1, 2].includes(o?.size) ? o.size : 0 });
 
 const session = store.get("session", null);
 const state = {
@@ -125,14 +125,14 @@ function setBackground(file) {
   if (!file) return;
   const url = URL.createObjectURL(file);
   const img = new Image();
-  img.onload = () => { state.background = img; state.backgroundUrl = url; draw(); };
+  img.onload = () => { state.background = img; state.backgroundUrl = url; show(); }; // show: photo tile + "Photo" tab depend on it
   img.onerror = () => { URL.revokeObjectURL(url); toast(tr("Foto konnte nicht geladen werden.", "Couldn't load the photo.")); };
   img.src = url;
 }
 
 // ------------------------------------------------------------------ editor UI
 
-const SECTIONS = { LOOKS: ["Looks", "Looks"], LAYOUT: ["Layout", "Layout"], STATS: ["Werte", "Stats"], COLOR: ["Farbe", "Colour"], EXTRAS: ["Extras", "Extras"], SPORT: ["Sport", "Sport"] };
+const SECTIONS = { LOOKS: ["Looks", "Looks"], LAYOUT: ["Layout", "Layout"], STATS: ["Werte", "Stats"], COLOR: ["Farbe", "Colour"], PHOTO: ["Foto", "Photo"], EXTRAS: ["Extras", "Extras"], SPORT: ["Sport", "Sport"] };
 
 function tabs(el, entries, selected, onPick) {
   el.replaceChildren(...Object.entries(entries).map(([k, [de, en]]) => {
@@ -191,6 +191,9 @@ function controls(w) {
     }
   } else if (sec === "COLOR") {
     for (const [k, [de, en]] of Object.entries(INKS)) out.push(chip(tr(de, en), o.ink === k, () => setOverlay({ ink: k }), { dot: k === "WHITE" ? "#fff" : k === "BLACK" ? "#14140F" : accent }));
+    // black ink needs a lighter, not a darker, background
+    out.push(note(o.ink === "BLACK" ? tr("AUFHELLEN", "LIGHTEN") : tr("ABDUNKELN", "DARKEN")));
+    DIM_LABELS.forEach(([de, en], i) => out.push(chip(tr(de, en), o.dim === i, () => setOverlay({ dim: i }))));
   } else if (sec === "EXTRAS") {
     const r = w.route, toggle = (key) => () => setOverlay({ [key]: !o[key] });
     if (r) out.push(chip("Route", o.showRoute, toggle("showRoute")));
@@ -201,6 +204,18 @@ function controls(w) {
     if (w.startMillis != null) out.push(chip(tr("Datum", "Date"), o.showDate, toggle("showDate")));
     out.push(chip("Logo", o.showBrand, toggle("showBrand")));
     if (!r) out.push(note(tr("Karte, Höhenprofil, Splits: GPX/TCX dazunehmen", "Map, elevation, splits: add a GPX/TCX")));
+  } else if (sec === "PHOTO") {
+    const toggle = (key) => () => setOverlay({ [key]: !o[key] });
+    out.push(chip(tr("Foto ins PNG", "Photo in PNG"), o.withPhoto, toggle("withPhoto")));
+    if (!o.withPhoto) out.push(note(tr("Dann gehen Position, Größe, Verlauf und Weich", "Unlocks position, size, gradient and blur")));
+    else {
+      out.push(note(tr("POSITION", "POSITION")));
+      for (const [i, de, en] of PLACES) out.push(chip(tr(de, en), o.place === i, () => setOverlay({ place: i })));
+      out.push(note(tr("GRÖSSE", "SIZE")));
+      for (const [i, l] of SIZE_CHIPS) out.push(chip(l, o.size === i, () => setOverlay({ size: i })));
+      out.push(chip(tr("Verlauf", "Gradient"), o.fade, toggle("fade")));
+      out.push(chip(tr("Weich", "Blur"), o.soft, toggle("soft")));
+    }
   } else {
     // full stories: format first (story or feed post), then the sport
     if (state.style !== "OVERLAY") for (const [k, [label]] of Object.entries(FORMATS)) out.push(chip(label, state.format === k, () => { state.format = k; store.set("format", k); show(); }));
@@ -220,7 +235,10 @@ function show() {
   tabs($("styles"), STYLES, state.style, (k) => { state.style = k; store.set("style", k); show(); });
   const secs = $("sections");
   secs.hidden = state.style !== "OVERLAY";
-  tabs(secs, SECTIONS, state.section, (k) => { state.section = k; show(); });
+  // "Photo" only once there is one
+  const secList = Object.fromEntries(Object.entries(SECTIONS).filter(([k]) => k !== "PHOTO" || state.background));
+  if (!secList[state.section]) state.section = "LAYOUT";
+  tabs(secs, secList, state.section, (k) => { state.section = k; show(); });
   controls(w);
 
   const photo = $("photo"), route = $("route");
@@ -232,7 +250,8 @@ function show() {
     ? `${D.formatDistance(state.route.distanceMeters).value} ${D.formatDistance(state.route.distanceMeters).unit.toLowerCase()} · ${D.formatInt(state.route.pointCount ?? 0)} ${tr("Pkt.", "pts")}`
     : ROUTE_HINT;
   route.querySelector("i").textContent = state.route ? "✕" : "+";
-  $("ed-hint").textContent = state.style === "OVERLAY" ? tr("Instagram: Story öffnen → Sticker → Foto → PNG wählen", "Instagram: open a story → Stickers → Photo → pick the PNG")
+  $("ed-hint").textContent = state.style === "OVERLAY" && state.overlay.withPhoto && state.background ? tr("Fertige Story 1080 × 1920 mit deinem Foto", "Finished 1080 × 1920 story with your photo")
+    : state.style === "OVERLAY" ? tr("Instagram: Story öffnen → Sticker → Foto → PNG wählen", "Instagram: open a story → Stickers → Photo → pick the PNG")
     : state.format === "FEED" ? tr("Fertiger Beitrag 1080 × 1350 für den Instagram-Feed", "Finished 1080 × 1350 post for the Instagram feed")
     : tr("Fertige Story 1080 × 1920, als Hintergrund in Instagram", "Finished 1080 × 1920 story, use it as the Instagram background");
   draw();
@@ -246,8 +265,9 @@ function draw() {
   frame = requestAnimationFrame(() => {
     const w = workout();
     if (!w) return;
-    const stage = $("stage"), overlay = state.style === "OVERLAY";
-    stage.className = "stage" + (overlay ? " sticker" + (state.backgroundUrl ? " photo" : " checker" + (state.overlay.ink === "BLACK" ? " light" : "")) : "") + (!overlay && state.format === "FEED" ? " feed" : "");
+    const baked = state.style === "OVERLAY" && state.overlay.withPhoto && !!state.background; // photo is part of the PNG
+    const stage = $("stage"), overlay = state.style === "OVERLAY" && !baked;
+    stage.className = "stage" + (overlay ? " sticker" + (state.backgroundUrl ? " photo" : " checker" + (state.overlay.ink === "BLACK" ? " light" : "")) : "") + (state.style !== "OVERLAY" && state.format === "FEED" ? " feed" : "");
     // the sticker is previewed on your photo if you picked one; the PNG itself stays transparent
     stage.style.backgroundImage = overlay && state.backgroundUrl ? `url("${state.backgroundUrl}")` : "";
     stage.replaceChildren(render(w, state.style, state.background, state.overlay, state.format, 0.5));

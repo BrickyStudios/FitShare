@@ -39,16 +39,21 @@ Fitness apps share a workout as a finished picture in their own design, and Stra
 Gadgetbridge, which syncs Mi Band, Amazfit and other watches without the vendor's cloud, has no share button at all, and a Mi Band 10 export doesn't even contain the distance. FitShare reads its FIT or JSON export and takes distance, elevation and the map from your GPX or KMZ route.
 
 <p align="center">
-  <img src="docs/bilder/0-overlay-stack.png" width="200" alt="FitShare stack overlay: distance, time and average speed above the route, white on a transparent background, placed over a sunset photo">
-  <img src="docs/bilder/0-overlay-card.png" width="200" alt="FitShare card overlay: translucent rounded card with route, four stats, elevation profile and date">
-  <img src="docs/bilder/0-overlay-map.png" width="200" alt="FitShare map overlay: large route in the sport colour with a one-line summary of distance, time and speed">
+  <img src="docs/bilder/photo-stack-gravel.jpg" width="200" alt="FitShare stack: date, distance, time and average speed above a gravel bike leaning on a wooden fence, darkened from the top">
+  <img src="docs/bilder/photo-card-gravel.jpg" width="200" alt="FitShare card: translucent card with route, four stats and elevation profile in the sky above a gravel bike">
+  <img src="docs/bilder/photo-map-ride.jpg" width="200" alt="FitShare map: large route and a one-line summary over a view across the handlebars onto a country lane">
+</p>
+<p align="center">
+  <img src="docs/bilder/photo-row-sunset.jpg" width="200" alt="FitShare row: distance, time and speed in one line in the sky above a cyclist riding a dirt track at sunset">
+  <img src="docs/bilder/photo-swim-pool.jpg" width="200" alt="FitShare swim stats: 1.50 km, 31:42 and pace per 100 m above an outdoor 50 m pool with goggles on the edge">
+  <img src="docs/bilder/photo-swim-lake.jpg" width="200" alt="FitShare swim stats in one row at the bottom of a lake photo at sunrise, the shade fading up from the bottom edge">
 </p>
 <p align="center">
   <img src="docs/bilder/1-night.png" width="200" alt="FitShare full story in the Night style: dark background, glowing route, heart rate zones and a stats table">
   <img src="docs/bilder/2-race-bib.png" width="200" alt="FitShare full story in the Race bib style: paper look with an orange header band, route and stats">
 </p>
 
-<p align="center"><sub>Demo data from an invented route. The backgrounds are drawn, in the app you use your own photo.</sub></p>
+<p align="center"><sub>Demo data from an invented route. The photos are AI-generated stand-ins for your own; the stickers on them come straight out of the app (Photo tab, Photo in PNG).</sub></p>
 
 ## What it does
 

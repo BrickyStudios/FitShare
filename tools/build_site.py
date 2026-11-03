@@ -123,8 +123,8 @@ def cta(lang="en"):
 
 def gallery(root):
     return f"""<div class="gallery">
-<img src="{root}bilder/0-overlay-stack.png" width="540" height="960" loading="lazy" alt="Stack overlay: distance, time and speed above the route on a sunset photo">
-<img src="{root}bilder/0-overlay-card.png" width="540" height="960" loading="lazy" alt="Card overlay: translucent card with route, four stats and an elevation profile">
+<img src="{root}bilder/photo-map-ride.jpg" width="540" height="960" loading="lazy" alt="Map sticker: large route and a one-line summary over a view across the handlebars onto a country lane">
+<img src="{root}bilder/photo-swim-lake.jpg" width="540" height="960" loading="lazy" alt="Swim stats in one row at the bottom of a lake photo at sunrise, darkened from the bottom edge">
 <img src="{root}bilder/1-night.png" width="540" height="960" loading="lazy" alt="Night story: glowing route, distance, heart rate zones and a stats table">
 </div>"""
 

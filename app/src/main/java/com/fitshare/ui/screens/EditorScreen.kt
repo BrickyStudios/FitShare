@@ -162,7 +162,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         if (granted) save() else Toast.makeText(ctx, tr("Ohne Speicherrecht kein Speichern", "Saving needs the storage permission"), Toast.LENGTH_SHORT).show()
     }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) vm.setBackground(uri)
+        if (uri != null) { vm.setBackground(uri); section = Section.PHOTO } // photo options right away
     }
     val routePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.open(it) }
 
@@ -296,16 +296,20 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         Chip("Logo", overlay.showBrand, accent) { vm.updateOverlay { it.copy(showBrand = !it.showBrand) } }
                     }
                     Section.PHOTO -> {
+                        // every option here only works with the photo baked in, so picking one switches that on
+                        fun bake(f: (OverlayOptions) -> OverlayOptions) = vm.updateOverlay { f(it).copy(withPhoto = true) }
                         Chip(tr("Foto ins PNG", "Photo in PNG"), overlay.withPhoto, accent) { vm.updateOverlay { it.copy(withPhoto = !it.withPhoto) } }
-                        if (!overlay.withPhoto) Hint(tr("Dann gehen Position, Größe, Verlauf und Weich", "Unlocks position, size, gradient and blur"))
-                        else {
-                            Hint(tr("POSITION", "POSITION"))
-                            PLACE_ORDER.forEach { i -> Chip(placeLabel(i), overlay.place == i, accent) { vm.updateOverlay { it.copy(place = i) } } }
-                            Hint(tr("GRÖSSE", "SIZE"))
-                            SIZE_ORDER.forEach { i -> Chip(sizeLabel(i), overlay.size == i, accent) { vm.updateOverlay { it.copy(size = i) } } }
-                            Chip(tr("Verlauf", "Gradient"), overlay.fade, accent) { vm.updateOverlay { it.copy(fade = !it.fade) } }
-                            Chip(tr("Weich", "Blur"), overlay.soft, accent) { vm.updateOverlay { it.copy(soft = !it.soft) } }
+                        Hint(tr("POSITION", "POSITION"))
+                        PLACE_ORDER.forEach { i -> Chip(placeLabel(i), overlay.withPhoto && overlay.place == i, accent) { bake { it.copy(place = i) } } }
+                        Hint(tr("GRÖSSE", "SIZE"))
+                        SIZE_ORDER.forEach { i -> Chip(sizeLabel(i), overlay.withPhoto && overlay.size == i, accent) { bake { it.copy(size = i) } } }
+                        Hint(if (overlay.ink == InkColor.BLACK) tr("AUFHELLEN", "LIGHTEN") else tr("ABDUNKELN", "DARKEN"))
+                        DIM_LEVELS.indices.forEach { i -> Chip(dimLabel(i), overlay.withPhoto && overlay.dim == i, accent) { bake { it.copy(dim = i) } } }
+                        // a gradient of nothing is invisible: turning it on with darken off picks "medium"
+                        Chip(tr("Verlauf", "Gradient"), overlay.withPhoto && overlay.fade, accent) {
+                            bake { it.copy(fade = !(it.withPhoto && it.fade), dim = if (it.dim == 0) 2 else it.dim) }
                         }
+                        Chip(tr("Weich", "Blur"), overlay.withPhoto && overlay.soft, accent) { bake { it.copy(soft = !(it.withPhoto && it.soft)) } }
                     }
                     Section.SPORT -> {
                         // full stories: format first (story or feed post), then the sport

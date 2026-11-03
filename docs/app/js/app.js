@@ -125,7 +125,7 @@ function setBackground(file) {
   if (!file) return;
   const url = URL.createObjectURL(file);
   const img = new Image();
-  img.onload = () => { state.background = img; state.backgroundUrl = url; show(); }; // show: photo tile + "Photo" tab depend on it
+  img.onload = () => { state.background = img; state.backgroundUrl = url; state.section = "PHOTO"; show(); }; // show: photo tile + "Photo" tab depend on it
   img.onerror = () => { URL.revokeObjectURL(url); toast(tr("Foto konnte nicht geladen werden.", "Couldn't load the photo.")); };
   img.src = url;
 }
@@ -205,17 +205,18 @@ function controls(w) {
     out.push(chip("Logo", o.showBrand, toggle("showBrand")));
     if (!r) out.push(note(tr("Karte, Höhenprofil, Splits: GPX/TCX dazunehmen", "Map, elevation, splits: add a GPX/TCX")));
   } else if (sec === "PHOTO") {
-    const toggle = (key) => () => setOverlay({ [key]: !o[key] });
-    out.push(chip(tr("Foto ins PNG", "Photo in PNG"), o.withPhoto, toggle("withPhoto")));
-    if (!o.withPhoto) out.push(note(tr("Dann gehen Position, Größe, Verlauf und Weich", "Unlocks position, size, gradient and blur")));
-    else {
-      out.push(note(tr("POSITION", "POSITION")));
-      for (const [i, de, en] of PLACES) out.push(chip(tr(de, en), o.place === i, () => setOverlay({ place: i })));
-      out.push(note(tr("GRÖSSE", "SIZE")));
-      for (const [i, l] of SIZE_CHIPS) out.push(chip(l, o.size === i, () => setOverlay({ size: i })));
-      out.push(chip(tr("Verlauf", "Gradient"), o.fade, toggle("fade")));
-      out.push(chip(tr("Weich", "Blur"), o.soft, toggle("soft")));
-    }
+    // every option here only works with the photo baked in, so picking one switches that on
+    const on = o.withPhoto, bake = (patch) => () => setOverlay({ ...patch, withPhoto: true });
+    out.push(chip(tr("Foto ins PNG", "Photo in PNG"), on, () => setOverlay({ withPhoto: !on })));
+    out.push(note(tr("POSITION", "POSITION")));
+    for (const [i, de, en] of PLACES) out.push(chip(tr(de, en), on && o.place === i, bake({ place: i })));
+    out.push(note(tr("GRÖSSE", "SIZE")));
+    for (const [i, l] of SIZE_CHIPS) out.push(chip(l, on && o.size === i, bake({ size: i })));
+    out.push(note(o.ink === "BLACK" ? tr("AUFHELLEN", "LIGHTEN") : tr("ABDUNKELN", "DARKEN")));
+    DIM_LABELS.forEach(([de, en], i) => out.push(chip(tr(de, en), on && o.dim === i, bake({ dim: i }))));
+    // a gradient of nothing is invisible: turning it on with darken off picks "medium"
+    out.push(chip(tr("Verlauf", "Gradient"), on && o.fade, bake({ fade: !(on && o.fade), dim: o.dim || 2 })));
+    out.push(chip(tr("Weich", "Blur"), on && o.soft, bake({ soft: !(on && o.soft) })));
   } else {
     // full stories: format first (story or feed post), then the sport
     if (state.style !== "OVERLAY") for (const [k, [label]] of Object.entries(FORMATS)) out.push(chip(label, state.format === k, () => { state.format = k; store.set("format", k); show(); }));

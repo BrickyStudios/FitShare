@@ -51,6 +51,7 @@ android {
     packaging { jniLibs { useLegacyPackaging = true } }
     buildFeatures {
         compose = true
+        buildConfig = true // version for the update check
     }
 }
 

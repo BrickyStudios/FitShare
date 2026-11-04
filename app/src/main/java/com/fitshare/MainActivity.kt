@@ -22,10 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.core.content.IntentCompat
 import com.fitshare.data.Source
+import com.fitshare.data.UpdateViewModel
 import com.fitshare.data.WorkoutViewModel
 import com.fitshare.data.tr
 import com.fitshare.ui.screens.EditorScreen
 import com.fitshare.ui.screens.ImportScreen
+import com.fitshare.ui.screens.UpdateDialog
 import com.fitshare.ui.theme.FitShareTheme
 import com.fitshare.ui.theme.Ink
 import com.fitshare.ui.theme.uiSpring
@@ -33,6 +35,7 @@ import com.fitshare.ui.theme.uiSpring
 class MainActivity : ComponentActivity() {
 
     private val vm: WorkoutViewModel by viewModels()
+    private val updates: UpdateViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +59,8 @@ class MainActivity : ComponentActivity() {
                 ) { editing ->
                     if (editing) EditorScreen(state, vm) else ImportScreen(state, vm)
                 }
+                val update by updates.state.collectAsState()
+                update?.let { UpdateDialog(it, onInstall = updates::install, onLater = updates::later) }
             }
         }
     }

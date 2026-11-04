@@ -6,8 +6,10 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
-    <!-- ML Kit asks for these to send usage stats to Google. The OCR model is bundled, so FitShare stays offline. -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <!-- Only for the update check: GitHub Releases (data/Updater.kt). Workouts and pictures never leave the phone. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- ML Kit asks for this to send usage stats to Google; FitShare doesn't need it. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
     <!-- The start screen preselects and opens the fitness app you use (Source.kt). Keep in sync. -->
@@ -88,6 +90,15 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- ML Kit's usage stats go out through this backend. Without it the queued events are deleted, never sent. -->
+        <service
+            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+            tools:node="merge">
+            <meta-data
+                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+                tools:node="remove" />
+        </service>
 
     </application>
 

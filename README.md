@@ -80,11 +80,11 @@ The preview shows the overlay on your photo if you pick one. The saved PNG stays
 
 **Everyday details.** Share the workout and the route to FitShare one after the other, or pick both at once. If Android closes the app while you are in Instagram, your workout, photo and settings are still there when you come back. The app follows your phone's language (English or German), or set it per app in Android 13+.
 
-**Privacy.** No account, no network access, no analytics. Text recognition runs on the phone. Files stay on the phone.
+**Privacy.** No account, no analytics. Text recognition runs on the phone, and workouts, pictures and files stay there. The app only goes online to ask GitHub whether a new version is out.
 
 ## Install
 
-Android 8.0 or newer. [Download FitShare.apk](https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk) (always the latest version), or add `https://github.com/BrickyStudios/FitShare` to [Obtainium](https://github.com/ImranR98/Obtainium) to get updates.
+Android 8.0 or newer. [Download FitShare.apk](https://github.com/BrickyStudios/FitShare/releases/latest/download/FitShare.apk) (always the latest version). From 1.10.0 on, FitShare looks for new versions on start and installs them with one tap. [Obtainium](https://github.com/ImranR98/Obtainium) with `https://github.com/BrickyStudios/FitShare` works too.
 
 iPhone, desktop or no APK: use the [web app](https://brickystudios.github.io/FitShare/app/) in the browser, see [below](#web-app-iphone-desktop).
 
@@ -135,7 +135,7 @@ Menu names change between app versions. Numbers read from a picture can be wrong
 ./gradlew testDebugUnitTest assembleRelease
 ```
 
-Kotlin, Jetpack Compose, JDK 17. One Canvas renderer draws both the preview and the export, so what you save is what you saw. Without the signing secrets, release builds use the debug key. Share pictures are read with Google's [ML Kit text recognition](https://developers.google.com/ml-kit/vision/text-recognition/v2/android), bundled in the APK so it runs without Play Services (Huawei and degoogled phones). ML Kit is not open source. The INTERNET permission it asks for is removed in the manifest, so its usage statistics never leave the phone. Fonts: [Big Shoulders Display](https://fonts.google.com/specimen/Big+Shoulders+Display) and [Archivo](https://fonts.google.com/specimen/Archivo), both under the SIL Open Font License (`app/src/main/assets/fonts`).
+Kotlin, Jetpack Compose, JDK 17. One Canvas renderer draws both the preview and the export, so what you save is what you saw. Without the signing secrets, release builds use the debug key. Share pictures are read with Google's [ML Kit text recognition](https://developers.google.com/ml-kit/vision/text-recognition/v2/android), bundled in the APK so it runs without Play Services (Huawei and degoogled phones). ML Kit is not open source. It tries to send usage statistics to Google. The manifest removes the component that uploads them, so they are deleted on the phone instead. Fonts: [Big Shoulders Display](https://fonts.google.com/specimen/Big+Shoulders+Display) and [Archivo](https://fonts.google.com/specimen/Archivo), both under the SIL Open Font License (`app/src/main/assets/fonts`).
 
 ## License
 

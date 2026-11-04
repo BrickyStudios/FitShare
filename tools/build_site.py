@@ -113,11 +113,11 @@ def cta(lang="en"):
     if lang == "de":
         return (f'<p class="cta"><a class="btn" href="{APK}">APK herunterladen</a>'
                 f'<a class="btn ghost" href="{WEBAPP}">Im Browser öffnen</a></p>'
-                '<p class="small">Die APK braucht Android 8.0 oder neuer, ohne Konto und ohne Internetzugriff. '
+                '<p class="small">Die APK braucht Android 8.0 oder neuer und kein Konto. Updates holt sie sich selbst von GitHub. '
                 'Die Web-App läuft auf iPhone, Android und am Rechner, ohne Installation; Bilder und Dateien verlassen das Gerät nicht.</p>')
     return (f'<p class="cta"><a class="btn" href="{APK}">Download the APK</a>'
             f'<a class="btn ghost" href="{WEBAPP}">Open in the browser</a></p>'
-            '<p class="small">The APK needs Android 8.0 or newer, no account, no internet permission. '
+            '<p class="small">The APK needs Android 8.0 or newer and no account. It fetches its own updates from GitHub. '
             'The web app runs on iPhone, Android and desktop with nothing to install; pictures and files never leave the device.</p>')
 
 
@@ -195,8 +195,8 @@ home_faq, home_faq_schema = faq([
     ("Do I get the map from the share picture?", "No, only the numbers. For the route, the elevation profile and the km splits, also share the workout's GPX or TCX file. <a href=\"fitness-app-instagram-sticker/\">Where each app hides its export</a>."),
     ("Do I need a subscription?", "No. FitShare is free, and so is every layout and graph in it. You don't need Strava, Garmin Connect+ or any other paid plan."),
     ("Is there an iPhone version?", "Yes, as a web app. Open <a href=\"app/\">brickystudios.github.io/FitShare/app</a> in Safari, pick the saved share picture or a GPX file, and save the sticker. Tap Share → Add to Home Screen to keep it as an icon. It isn't in the App Store."),
-    ("Is it on Google Play?", "Not yet. Install the APK from GitHub Releases, or add the repository to Obtainium for automatic updates."),
-    ("Does my data leave the phone?", "No. Text recognition runs on the phone, and the app has no internet permission, so it cannot upload anything."),
+    ("Is it on Google Play?", "Not yet. Install the APK from GitHub Releases once. After that, FitShare finds new versions and installs them itself."),
+    ("Does my data leave the phone?", "No. Text recognition runs on the phone. The app only goes online to ask GitHub whether there's a new version and sends nothing else."),
 ])
 page("", "en", "FitShare: Instagram story stats sticker for any fitness app", HOME_DESC, f"""
 <section class="hero">
@@ -218,7 +218,7 @@ page("", "en", "FitShare: Instagram story stats sticker for any fitness app", HO
 <div><h3>Your look, one tap away</h3><p>Save a setup as a named look. The last eight exports stay in a history, so the next workout looks like the last one.</p></div>
 <div><h3>iPhone and desktop too</h3><p>The <a href="app/">web app</a> does the same in Safari, Chrome or Firefox, without installing anything. Your files stay on the device.</p></div>
 <div><h3>No subscription</h3><p>Elevation profile, splits and heart rate zones are free. Nothing in FitShare sits behind a paid plan.</p></div>
-<div><h3>Stays on your phone</h3><p>Text recognition runs on the phone. No account, no analytics, no internet permission.</p></div>
+<div><h3>Stays on your phone</h3><p>Text recognition runs on the phone. No account, no analytics, no upload.</p></div>
 </section>
 <section>
 <h2>Guides</h2>
@@ -279,7 +279,7 @@ page("strava-sticker-alternative/", "en", "Strava stats sticker alternative with
 <li>A transparent PNG, cropped to its content, so Instagram treats it as a movable photo sticker.</li>
 <li>Distance, time, speed or pace, elevation gain, heart rate, calories, steps, laps: pick up to four.</li>
 <li>Route, elevation profile, heart rate graph and km splits as extras.</li>
-<li>No account and no upload. The app has no internet permission.</li>
+<li>No account and no upload. The app only goes online to check for updates.</li>
 </ul>
 <h2>Where the data comes from</h2>
 <p>From the share picture of Strava, Garmin Connect or Mi Fitness, from <a href="https://gadgetbridge.org/">Gadgetbridge</a> (FIT or JSON), from OpenTracks (KMZ or GPX), or from any GPX file, including one exported from Strava or Komoot. On an iPhone, use the <a href="../app/">web app</a>.</p>
@@ -425,7 +425,7 @@ de_faq, de_faq_schema = faq([
     ("Kommt die Karte mit dem Bild?", "Nein, nur die Zahlen. Für Route, Höhenprofil und Km-Splits zusätzlich die GPX- oder TCX-Datei teilen. <a href=\"fitness-app-instagram-story/\">Wo jede App ihren Export versteckt</a>."),
     ("Brauche ich ein Abo?", "Nein. FitShare kostet nichts, alle Layouts und Kurven inklusive. Strava-Abo oder Garmin Connect+ brauchst du nicht."),
     ("Gibt es FitShare für das iPhone?", "Ja, als Web-App. <a href=\"../app/\">brickystudios.github.io/FitShare/app</a> in Safari öffnen, das gesicherte Teilen-Bild oder eine GPX-Datei wählen und den Sticker sichern. Über Teilen → Zum Home-Bildschirm liegt sie als Icon bereit. Im App Store ist sie nicht."),
-    ("Verlassen meine Daten das Handy?", "Nein. Die Texterkennung läuft auf dem Handy, und die App hat keine Internet-Berechtigung."),
+    ("Verlassen meine Daten das Handy?", "Nein. Die Texterkennung läuft auf dem Handy. Ins Netz geht die App nur, um bei GitHub nach einer neuen Version zu fragen, sonst schickt sie nichts."),
 ], "de")
 page("de/", "de", "FitShare: Instagram-Story-Sticker für jede Fitness-App", DE_DESC, f"""
 <section class="hero">
@@ -448,7 +448,7 @@ page("de/", "de", "FitShare: Instagram-Story-Sticker für jede Fitness-App", DE_
 <div><h3>Eigene Looks</h3><p>Einstellungen unter einem Namen speichern. Die letzten acht Exporte bleiben im Verlauf, ein Tippen überträgt sie aufs nächste Training.</p></div>
 <div><h3>Auch iPhone und Rechner</h3><p>Die <a href="../app/">Web-App</a> kann dasselbe in Safari, Chrome oder Firefox, ohne Installation. Deine Dateien bleiben auf dem Gerät.</p></div>
 <div><h3>Kein Abo</h3><p>Höhenprofil, Splits und Pulszonen kosten nichts. In FitShare liegt nichts hinter einer Bezahlschranke.</p></div>
-<div><h3>Bleibt auf dem Handy</h3><p>Die Texterkennung läuft auf dem Handy. Kein Konto, keine Analyse, keine Internet-Berechtigung.</p></div>
+<div><h3>Bleibt auf dem Handy</h3><p>Die Texterkennung läuft auf dem Handy. Kein Konto, keine Analyse, kein Upload.</p></div>
 </section>
 <section>
 <h2>Anleitungen</h2>
@@ -561,7 +561,7 @@ page("de/strava-sticker-alternative/", "de", "Strava-Sticker ohne Strava: Werte 
 <li>Ein transparentes PNG, auf den Inhalt zugeschnitten, das Instagram als verschiebbaren Foto-Sticker nimmt.</li>
 <li>Distanz, Zeit, Geschwindigkeit oder Tempo, Höhenmeter, Puls, Kalorien, Schritte, Bahnen: bis zu vier davon.</li>
 <li>Route, Höhenprofil, Pulskurve und Km-Splits als Extras.</li>
-<li>Kein Konto und kein Upload. Die App hat keine Internet-Berechtigung.</li>
+<li>Kein Konto und kein Upload. Ins Netz geht die App nur für Updates.</li>
 </ul>
 <h2>Woher die Werte kommen</h2>
 <p>Aus dem Teilen-Bild von Strava, Garmin Connect oder Mi Fitness, aus <a href="https://gadgetbridge.org/">Gadgetbridge</a> (FIT oder JSON), aus OpenTracks (KMZ oder GPX) oder aus jeder GPX-Datei, auch einer aus Strava oder Komoot. Auf dem iPhone geht es mit der <a href="../../app/">Web-App</a>.</p>

@@ -1,9 +1,10 @@
 // Offline cache + Android share target for the FitShare web app.
-const VERSION = "fs-9";
+const VERSION = "fs-10";
 const SHELL = ["./", "app.css", "js/app.js", "js/data.js", "js/render.js", "manifest.webmanifest", "icon-192.png", "../fonts/bigshoulders.ttf", "../fonts/archivo.ttf"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // reload: an update must not fill its cache from the browser's HTTP cache (Pages serves max-age=600)
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== "fs-share").map((k) => caches.delete(k)))).then(() => self.clients.claim()));
@@ -39,7 +40,8 @@ self.addEventListener("fetch", (e) => {
       return res;
     }
     try {
-      const res = await fetch(e.request);
+      // ask the server every time (a 304 is cheap), or a fresh deploy shows old files for up to 10 minutes
+      const res = await fetch(new Request(e.request.url, { cache: "no-cache" }));
       if (res.ok) cache.put(e.request, res.clone());
       return res;
     } catch {

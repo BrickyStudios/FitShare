@@ -103,6 +103,37 @@ test("km splits interpolate and skip pauses", () => {
   assert.deepEqual(D.splits([[{ lat: 48, lon: 9, time: null }, { lat: 48.1, lon: 9, time: null }]]), []);
 });
 
+// points along a meridian; each step is [metres, seconds] after the previous point
+function track(steps) {
+  let m = 0, t = 0;
+  return [{ lat: 48.3, lon: 9.9, ele: null, time: 0 }, ...steps.map(([dm, dt]) => { m += dm; t += dt * 1000; return { lat: 48.3 + m / 111195, lon: 9.9, ele: null, time: t }; })];
+}
+const rep = (n, step) => Array.from({ length: n }, () => step);
+
+test("standing still is not moving time", () => {
+  // ride, roll slowly up to a red light, three minutes of GPS drift, ride on
+  const r = D.buildRoute([track([...rep(60, [14, 2]), [8, 10], ...rep(3, [1, 60]), ...rep(60, [14, 2])])]);
+  assert.equal(r.movingSeconds, 240);
+  assert.equal(r.splitSeconds.length, 1);
+  assert.ok(r.splitSeconds[0] >= 140 && r.splitSeconds[0] <= 142, String(r.splitSeconds)); // not 331 s with the stop
+  assert.equal(D.buildRoute([track(rep(100, [8, 10]))]).movingSeconds, 1000); // on foot a steep climb still counts
+});
+
+test("moving time replaces time only if the watch never paused", () => {
+  const route = { segments: [[{ lat: 0, lon: 0 }, { lat: 0, lon: 0.1 }]], distanceMeters: 64400, elevationGainMeters: 0, startMillis: null, movingSeconds: 9030, profile: [], splitSeconds: [] };
+  const mi = { ...D.emptyStats(), activeSeconds: 9663, stopsIncluded: true };
+  assert.equal(D.mergeWorkout(mi, route, null).activeSeconds, 9030);
+  assert.equal(D.mergeWorkout({ ...mi, stopsIncluded: false }, route, null).activeSeconds, 9663); // auto-pause watch knows best
+  assert.equal(D.mergeWorkout(mi, { ...route, movingSeconds: 4000 }, null).activeSeconds, 9663); // track covers too little
+});
+
+test("same start pairs files of one workout", () => {
+  const route = { startMillis: 1e9 };
+  assert.equal(D.sameStart({ startMillis: 1e9 - 7000 }, route), true);
+  assert.equal(D.sameStart({ startMillis: 1e9 + 86400000 }, route), false);
+  assert.equal(D.sameStart(D.emptyStats(), route), null);
+});
+
 // minimal FIT writer, little endian (same as FitParserTest)
 function fitFile(build) {
   const body = [];
@@ -156,8 +187,9 @@ test("stats, hero and pick order", () => {
   const c = D.storyContent(w);
   assert.deepEqual([c.hero.value, c.hero.unit], [tr("67,32", "67.32"), "KM"]);
   assert.deepEqual(c.cells.map((x) => x.key), ["TIME", "SPEED", "ELEVATION", "AVG_HR", "MAX_HR", "ENERGY"]);
-  assert.equal(c.cells[0].value, "2:41:03");
-  assert.equal(c.cells[1].value, tr("25,1", "25.1"));
+  assert.equal(w.activeSeconds, 9000); // Mi Band counts every stop; the track's moving time wins
+  assert.equal(c.cells[0].value, "2:30:00");
+  assert.equal(c.cells[1].value, tr("26,9", "26.9"));
   assert.equal(c.cells[5].value, tr("1.310", "1,310"));
   const w2 = D.mergeWorkout({ ...D.emptyStats(), activeSeconds: 3600, distanceMeters: 30000, averageHR: 140 }, null, "CYCLING");
   assert.deepEqual(D.pickStats(w2, null, 3).map((x) => x.key), ["DISTANCE", "TIME", "SPEED"]);

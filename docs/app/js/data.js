@@ -30,6 +30,7 @@ export const emptyStats = () => ({
   startMillis: null, activeSeconds: 0, distanceMeters: 0, calories: 0, averageHR: 0, maxHR: 0,
   laps: 0, strokes: 0, swolf: 0, steps: 0, swimStyle: null, hrZoneSeconds: [], sport: null,
   elevationGainMeters: 0, hrCurve: [],
+  stopsIncluded: false, // the watch never paused (Mi Band): activeSeconds includes every stop
 });
 
 export function guessSport(s, distance, seconds) {
@@ -44,10 +45,19 @@ export function guessSport(s, distance, seconds) {
 }
 
 /** Workout file values, filled up from the route where the file has gaps. */
+/** Same outing? Judged by start time, 30 min slack (watch and GPS app are started by hand). Null if one has no time. */
+export function sameStart(stats, route) {
+  const a = stats?.startMillis, b = route?.startMillis;
+  return a == null || b == null ? null : Math.abs(a - b) <= 30 * 60000;
+}
+
 export function mergeWorkout(stats, route, sportOverride) {
   const s = stats || emptyStats();
   const distance = s.distanceMeters > 0 ? s.distanceMeters : route?.distanceMeters ?? 0;
-  const seconds = s.activeSeconds > 0 ? s.activeSeconds : route?.movingSeconds ?? 0;
+  const moving = route?.movingSeconds ?? 0;
+  // pauses out, but only if the track covers at least half the workout (a late GPS start mustn't shrink it)
+  const seconds = s.activeSeconds <= 0 ? moving
+    : s.stopsIncluded && moving >= Math.trunc(s.activeSeconds / 2) && moving < s.activeSeconds ? moving : s.activeSeconds;
   return {
     sport: sportOverride || guessSport(s, distance, seconds),
     startMillis: s.startMillis ?? route?.startMillis ?? null,
@@ -154,14 +164,15 @@ function haversine(a, b) {
 const parseTime = (s) => { const t = Date.parse(s.trim()); return Number.isNaN(t) ? null : t; };
 const toNum = (s) => { if (s == null) return null; const n = parseFloat(String(s).trim()); return Number.isFinite(n) ? n : null; };
 
-/** Time per full kilometre; pauses between segments don't count, like moving time. */
-export function splits(segments) {
+/** Time per full kilometre; pauses between segments and steps slower than minSpeed m/s don't count, like moving time. */
+export function splits(segments, minSpeed = 0) {
   const out = [];
   let dist = 0, moving = 0, lastMark = 0;
   for (const seg of segments) for (let i = 1; i < seg.length; i++) {
     const a = seg[i - 1], b = seg[i];
     if (a.time == null || b.time == null) return [];
-    const d = haversine(a, b), dt = (b.time - a.time) / 1000;
+    const d = haversine(a, b), raw = (b.time - a.time) / 1000;
+    const dt = raw > 0 && d / raw >= minSpeed ? raw : 0;
     // a step can cross a km mark; interpolate the time at the mark
     while (d > 0 && dist + d >= (out.length + 1) * 1000) {
       const f = ((out.length + 1) * 1000 - dist) / d;
@@ -200,11 +211,11 @@ function elevationProfile(segments, samples = 120) {
 
 export function buildRoute(segments) {
   if (segments.reduce((n, s) => n + s.length, 0) < 2) return null;
-  let distance = 0, gain = 0, moving = 0;
+  let distance = 0, gain = 0, span = 0;
   for (const seg of segments) {
     for (let i = 1; i < seg.length; i++) distance += haversine(seg[i - 1], seg[i]);
     const times = seg.map((p) => p.time).filter((t) => t != null);
-    if (times.length >= 2) moving += times[times.length - 1] - times[0];
+    if (times.length >= 2) span += times[times.length - 1] - times[0];
     // GPS altitude is noisy: only count climbs once they exceed 3 m above the last low point
     let anchor = null;
     for (const p of seg) {
@@ -213,13 +224,24 @@ export function buildRoute(segments) {
       else if (p.ele - anchor >= 3) { gain += p.ele - anchor; anchor = p.ele; }
     }
   }
+  // Standing still isn't moving time: at a red light the GPS creeps along at well under 1 m/s.
+  // On foot (under 9 km/h overall) a steep climb can be that slow, so walks get a lower bar.
+  const minSpeed = span > 0 && distance / (span / 1000) >= 2.5 ? 1 : 0.5;
+  let moving = 0;
+  for (const seg of segments) {
+    const timed = seg.filter((p) => p.time != null);
+    for (let i = 1; i < timed.length; i++) {
+      const dt = timed[i].time - timed[i - 1].time;
+      if (dt > 0 && haversine(timed[i - 1], timed[i]) / (dt / 1000) >= minSpeed) moving += dt;
+    }
+  }
   const pointCount = segments.reduce((n, s) => n + s.length, 0);
   let startMillis = null;
   for (const seg of segments) { const p = seg.find((x) => x.time != null); if (p) { startMillis = p.time; break; } }
   return {
     segments: segments.map((s) => s.map((p) => ({ lat: p.lat, lon: p.lon }))),
     distanceMeters: distance, elevationGainMeters: gain, startMillis,
-    movingSeconds: Math.floor(moving / 1000), profile: elevationProfile(segments), splitSeconds: splits(segments), pointCount,
+    movingSeconds: Math.floor(moving / 1000), profile: elevationProfile(segments), splitSeconds: splits(segments, minSpeed), pointCount,
   };
 }
 
@@ -390,6 +412,7 @@ export function parseWorkoutJson(text, filename = "") {
     laps: Math.trunc(n("laps")), strokes: Math.trunc(n("strokes")), swolf: Math.trunc(n("swolfAvg")), steps: Math.trunc(n("steps")),
     swimStyle: typeof style === "string" && style.trim() ? style : null,
     hrZoneSeconds: zones.reduce((a, b) => a + b, 0) > 0 ? zones : [],
+    stopsIncluded: true, // Mi Band exports run straight through stops
   };
 }
 
@@ -522,6 +545,7 @@ export function parseFit(b) {
       ...emptyStats(),
       startMillis: v(2) != null ? (v(2) + FIT_EPOCH) * 1000 : null,
       activeSeconds: Math.floor((v(8) ?? v(7) ?? 0) / 1000),
+      stopsIncluded: v(8) == null || v(8) >= (v(7) ?? 0) - 1000, // timer = elapsed: never paused
       distanceMeters: (v(9) ?? 0) / 100,
       calories: v(11) ?? 0, averageHR: v(16) ?? 0, maxHR: v(17) ?? 0,
       laps: swim ? v(26) ?? 0 : 0, // every FIT has ≥ 1 lap; only pool laps count

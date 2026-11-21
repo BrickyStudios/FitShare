@@ -37,7 +37,9 @@ data class WorkoutStats(
     /** Barometric climb from the watch (FIT); 0 if unknown. */
     val elevationGainMeters: Double = 0.0,
     /** Heart rate over the workout, resampled to evenly spaced points (FIT only). */
-    val hrCurve: List<Double> = emptyList()
+    val hrCurve: List<Double> = emptyList(),
+    /** The watch never paused (Mi Band): [activeSeconds] includes every stop, so the route's moving time is better. */
+    val stopsIncluded: Boolean = false
 ) {
     val hasSwimData: Boolean get() = laps > 0 || strokes > 0 || swolf > 0 || swimStyle != null
 }
@@ -66,7 +68,13 @@ data class Workout(
 fun mergeWorkout(stats: WorkoutStats?, route: Route?, sportOverride: Sport?): Workout {
     val s = stats ?: WorkoutStats()
     val distance = if (s.distanceMeters > 0) s.distanceMeters else route?.distanceMeters ?: 0.0
-    val seconds = if (s.activeSeconds > 0) s.activeSeconds else route?.movingSeconds ?: 0
+    val moving = route?.movingSeconds ?: 0
+    val seconds = when {
+        s.activeSeconds <= 0 -> moving
+        // pauses out, but only if the track covers at least half the workout (a late GPS start mustn't shrink it)
+        s.stopsIncluded && moving in s.activeSeconds / 2 until s.activeSeconds -> moving
+        else -> s.activeSeconds
+    }
     return Workout(
         sport = sportOverride ?: guessSport(s, distance, seconds),
         startMillis = s.startMillis ?: route?.startMillis,
@@ -99,4 +107,14 @@ fun swimStyleLabel(raw: String): String = when (raw.lowercase()) {
     "butterfly" -> tr("Delfin", "Butterfly")
     "mixed", "medley" -> tr("Lagen", "Medley")
     else -> raw.replaceFirstChar { it.uppercase() }
+}
+
+/**
+ * Whether a workout file and a route are the same outing, judged by start time. Watch and GPS app are
+ * started by hand, so 30 minutes of slack. Null if one of them has no start time.
+ */
+fun sameStart(stats: WorkoutStats?, route: Route?): Boolean? {
+    val a = stats?.startMillis ?: return null
+    val b = route?.startMillis ?: return null
+    return kotlin.math.abs(a - b) <= 30 * 60_000L
 }

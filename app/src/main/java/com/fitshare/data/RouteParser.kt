@@ -131,11 +131,11 @@ object RouteParser {
         if (segments.sumOf { it.size } < 2) return null
         var distance = 0.0
         var gain = 0.0
-        var moving = 0L
+        var span = 0L
         for (seg in segments) {
             for (i in 1 until seg.size) distance += haversine(seg[i - 1], seg[i])
             val times = seg.mapNotNull { it.time }
-            if (times.size >= 2) moving += times.last() - times.first()
+            if (times.size >= 2) span += times.last() - times.first()
             // GPS altitude is noisy: only count climbs once they exceed 3 m above the last low point.
             var anchor: Double? = null
             for (p in seg) {
@@ -145,6 +145,17 @@ object RouteParser {
                 else if (e - a >= 3.0) { gain += e - a; anchor = e }
             }
         }
+        // Standing still isn't moving time: at a red light the GPS creeps along at well under 1 m/s.
+        // On foot (under 9 km/h overall) a steep climb can be that slow, so walks get a lower bar.
+        val minSpeed = if (span > 0 && distance / (span / 1000.0) >= 2.5) 1.0 else 0.5
+        var moving = 0L
+        for (seg in segments) {
+            val timed = seg.filter { it.time != null }
+            for (i in 1 until timed.size) {
+                val dt = timed[i].time!! - timed[i - 1].time!!
+                if (dt > 0 && haversine(timed[i - 1], timed[i]) / (dt / 1000.0) >= minSpeed) moving += dt
+            }
+        }
         return Route(
             profile = elevationProfile(segments),
             segments = segments.map { seg -> seg.map { LatLon(it.lat, it.lon) } },
@@ -152,18 +163,19 @@ object RouteParser {
             elevationGainMeters = gain,
             startMillis = segments.firstNotNullOfOrNull { seg -> seg.firstNotNullOfOrNull { it.time } },
             movingSeconds = (moving / 1000).toInt(),
-            splitSeconds = splits(segments)
+            splitSeconds = splits(segments, minSpeed)
         )
     }
 
-    /** Time per full kilometre. Pauses between segments don't count, like moving time. */
-    internal fun splits(segments: List<List<Pt>>): List<Int> {
+    /** Time per full kilometre. Pauses between segments and steps slower than [minSpeed] m/s don't count, like moving time. */
+    internal fun splits(segments: List<List<Pt>>, minSpeed: Double = 0.0): List<Int> {
         val out = mutableListOf<Int>()
         var dist = 0.0; var moving = 0.0; var lastMark = 0.0
         for (seg in segments) for (i in 1 until seg.size) {
             val a = seg[i - 1]; val b = seg[i]
             val ta = a.time ?: return emptyList(); val tb = b.time ?: return emptyList()
-            val d = haversine(a, b); val dt = (tb - ta) / 1000.0
+            val d = haversine(a, b); val raw = (tb - ta) / 1000.0
+            val dt = if (raw > 0 && d / raw >= minSpeed) raw else 0.0
             // a step can cross a km mark; interpolate the time at the mark
             while (d > 0 && dist + d >= (out.size + 1) * 1000.0) {
                 val f = ((out.size + 1) * 1000.0 - dist) / d

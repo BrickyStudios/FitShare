@@ -96,9 +96,13 @@ async function open(files) {
       problems.push(`${f.name || tr("Datei", "File")}: ${e?.message || tr("konnte nicht gelesen werden", "could not be read")}`);
     }
   }
-  // a new workout drops the old route, sport choice and photo; a route on its own joins the open workout
-  if (stats) { state.stats = stats; state.route = route; state.sport = null; setBackground(null); }
-  else if (route) state.route = route;
+  // One workout often comes as two shares (Gadgetbridge FIT, OpenTracks KMZ) in either order; start times decide.
+  // A new FIT/JSON keeps the open route only if it started at the same time; a route on its own joins the open
+  // workout unless their start times clearly differ. Otherwise it's a new workout: route, sport and photo go.
+  const same = stats ? !route && D.sameStart(stats, state.route) === true : route ? D.sameStart(state.stats, route) !== false : true;
+  if (!same) { state.stats = null; state.route = null; state.sport = null; setBackground(null); }
+  if (stats) state.stats = stats;
+  if (route) state.route = route;
   saveSession();
   setBusy(false);
   if (problems.length) showError(problems.join("\n"));

@@ -118,14 +118,49 @@ class ParsingTest {
         val route = Route(listOf(listOf(LatLon(0.0, 0.0), LatLon(0.0, 0.1))), 67_320.0, 410.0, null, 9000)
         val w = mergeWorkout(s, route, null)
         assertEquals(Sport.CYCLING, w.sport) // 67 km in 2:41 h ≈ 25 km/h
-        assertEquals(9663, w.activeSeconds) // JSON wins over GPS time
+        assertEquals(9000, w.activeSeconds) // Mi Band counts every stop; the track's moving time wins
         val c = w.storyContent()
         assertEquals(Stat(StatKey.DISTANCE, "67,32", "KM"), c.hero)
         assertEquals(listOf("Zeit", "Ø Tempo", "Anstieg", "Ø Puls", "Max Puls", "Energie"), c.cells.map { it.label })
-        assertEquals("2:41:03", c.cells[0].value)
-        assertEquals("25,1", c.cells[1].value)
+        assertEquals("2:30:00", c.cells[0].value)
+        assertEquals("26,9", c.cells[1].value)
         assertEquals("1.310", c.cells[5].value)
         assertEquals(Sport.RUNNING, mergeWorkout(s, route, Sport.RUNNING).sport) // manual choice wins
+    }
+
+    // Points along a meridian; each step is (metres, seconds) after the previous point.
+    private fun track(steps: List<Pair<Double, Int>>): List<RouteParser.Pt> {
+        var m = 0.0; var t = 0L
+        return listOf(RouteParser.Pt(48.3, 9.9, null, 0L)) + steps.map { (dm, dt) ->
+            m += dm; t += dt * 1000L
+            RouteParser.Pt(48.3 + m / 111_195.0, 9.9, null, t)
+        }
+    }
+
+    @Test fun standingStillIsNotMovingTime() {
+        // ride, roll slowly up to a red light, three minutes of GPS drift, ride on
+        val ride = List(60) { 14.0 to 2 } + (8.0 to 10) + List(3) { 1.0 to 60 } + List(60) { 14.0 to 2 }
+        val r = RouteParser.build(listOf(track(ride)))!!
+        assertEquals(240, r.movingSeconds)
+        assertEquals(1, r.splitSeconds.size)
+        assertTrue(r.splitSeconds.toString(), r.splitSeconds[0] in 140..142) // not 331 s with the stop
+        // on foot a steep climb at 0.8 m/s still counts
+        assertEquals(1000, RouteParser.build(listOf(track(List(100) { 8.0 to 10 })))!!.movingSeconds)
+    }
+
+    @Test fun movingTimeReplacesTimeOnlyIfTheWatchNeverPaused() {
+        val route = Route(listOf(listOf(LatLon(0.0, 0.0), LatLon(0.0, 0.1))), 64_400.0, 0.0, null, 9030)
+        val mi = WorkoutStats(activeSeconds = 9663, stopsIncluded = true)
+        assertEquals(9030, mergeWorkout(mi, route, null).activeSeconds)
+        assertEquals(9663, mergeWorkout(mi.copy(stopsIncluded = false), route, null).activeSeconds) // auto-pause watch knows best
+        assertEquals(9663, mergeWorkout(mi, route.copy(movingSeconds = 4000), null).activeSeconds) // track covers too little
+    }
+
+    @Test fun sameStartPairsFilesOfOneWorkout() {
+        val route = Route(emptyList(), 0.0, 0.0, 1_000_000_000L, 0)
+        assertEquals(true, sameStart(WorkoutStats(startMillis = 1_000_000_000L - 7_000), route)) // watch started 7 s earlier
+        assertEquals(false, sameStart(WorkoutStats(startMillis = 1_000_000_000L + 86_400_000), route)) // a day apart
+        assertNull(sameStart(WorkoutStats(), route))
     }
 
     @Test fun swimmingShowsPacePer100AndLaps() {

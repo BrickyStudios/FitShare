@@ -34,7 +34,8 @@ object WorkoutParser {
             swolf = root.num("swolfAvg").toInt(),
             steps = root.num("steps").toInt(),
             swimStyle = root.str("swimStyle").takeIf { it.isNotBlank() },
-            hrZoneSeconds = if (zones.sum() > 0) zones else emptyList()
+            hrZoneSeconds = if (zones.sum() > 0) zones else emptyList(),
+            stopsIncluded = true // Mi Band exports run straight through stops
         )
     }
 

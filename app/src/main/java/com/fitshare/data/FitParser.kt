@@ -98,6 +98,7 @@ object FitParser {
             WorkoutStats(
                 startMillis = v(2)?.let { (it + FIT_EPOCH) * 1000 },
                 activeSeconds = ((v(8) ?: v(7) ?: 0L) / 1000).toInt(),
+                stopsIncluded = v(8).let { it == null || it >= (v(7) ?: 0L) - 1000 }, // timer = elapsed: never paused
                 distanceMeters = (v(9) ?: 0L) / 100.0,
                 calories = (v(11) ?: 0L).toInt(),
                 averageHR = (v(16) ?: 0L).toInt(),

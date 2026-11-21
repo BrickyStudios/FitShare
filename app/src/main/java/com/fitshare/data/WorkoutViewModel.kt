@@ -158,12 +158,19 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
             _state.update {
-                // A new FIT/JSON means a new workout: drop the old route, sport choice and photo.
-                // A route on its own (e.g. shared later from OpenTracks) is added to the current workout.
-                val base = if (stats != null) UiState() else it
+                // One workout often comes as two shares (Gadgetbridge FIT, OpenTracks KMZ) in either order; start times decide.
+                // A new FIT/JSON keeps the open route only if it started at the same time, otherwise it's a new workout.
+                // A route on its own joins the open workout unless their start times clearly differ.
+                val st = stats; val r = route
+                val same = when {
+                    st != null -> r == null && sameStart(st, it.route) == true
+                    r != null -> sameStart(it.stats, r) != false
+                    else -> true
+                }
+                val base = if (same) it else UiState()
                 base.copy(
-                    stats = stats ?: it.stats,
-                    route = route ?: base.route,
+                    stats = st ?: base.stats,
+                    route = r ?: base.route,
                     loading = false,
                     error = problems.takeIf { p -> p.isNotEmpty() }?.joinToString("\n")
                 )

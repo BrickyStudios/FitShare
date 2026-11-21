@@ -306,6 +306,8 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         val max = overlay.layout.maxStats
                         val chosen = overlay.stats ?: workout.pickStats(null, max).map { it.key }
                         val shown = workout.pickStats(chosen, max).map { it.key }
+                        // a watch file alone (Mi Band FIT) has no distance: say what brings distance, speed and pace
+                        if (workout.distanceMeters <= 0) Chip(tr("+ Route für Distanz & Pace", "+ Route for distance & pace"), false, accent) { routePicker.launch(arrayOf("*/*")) }
                         // "Auto" = let the sport decide (and follow it when the sport changes)
                         Chip("Auto", overlay.stats == null, accent) { vm.updateOverlay { it.copy(stats = null) } }
                         workout.availableStats().forEach { st ->

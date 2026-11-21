@@ -226,6 +226,8 @@ function controls(w) {
   } else if (sec === "STATS") {
     const max = LAYOUTS[o.layout][0];
     const shown = D.pickStats(w, o.stats ?? D.pickStats(w, null, max).map((x) => x.key), max).map((x) => x.key);
+    // a watch file alone (Mi Band FIT) has no distance: say what brings distance, speed and pace
+    if (!(w.distanceMeters > 0)) out.push(chip(tr("+ Route für Distanz & Pace", "+ Route for distance & pace"), false, () => $("route-input").click()));
     // "Auto" = let the sport decide (and follow it when the sport changes)
     out.push(chip("Auto", o.stats == null, () => setOverlay({ stats: null })));
     for (const st of D.availableStats(w)) {

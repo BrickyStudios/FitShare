@@ -55,13 +55,16 @@ private fun open(url: String, readTimeout: Int) = (URL(url).openConnection() as 
     this.readTimeout = readTimeout
 }
 
-/** null without network, on errors, or when GitHub has nothing newer. */
-suspend fun fetchUpdate(current: String): Release? = withContext(Dispatchers.IO) {
+/** The latest release on GitHub; null without network, on errors, or while its APK is still uploading. */
+suspend fun fetchLatest(): Release? = withContext(Dispatchers.IO) {
     runCatching {
         val c = open(LATEST, 10_000).apply { setRequestProperty("Accept", "application/vnd.github+json") }
         c.inputStream.bufferedReader().use { parseRelease(it.readText()) }
-    }.getOrNull()?.takeIf { isNewer(it.version, current) }
+    }.getOrNull()
 }
+
+/** GitHub allows 60 unauthenticated calls an hour; coming back to the app asks at most every 10 minutes. */
+internal fun checkDue(lastCheck: Long, now: Long) = now - lastCheck >= 10 * 60_000L
 
 /** Downloads into a .part file first, so a broken download never looks like a finished APK. */
 suspend fun download(url: String, target: File, progress: (Float) -> Unit) = withContext(Dispatchers.IO) {
@@ -103,17 +106,45 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _state = MutableStateFlow<UpdateState?>(null)
     val state: StateFlow<UpdateState?> = _state.asStateFlow()
+    private val _note = MutableStateFlow<String?>(null)
+    /** After a tap on the version: "you have the latest" or "GitHub not reachable". */
+    val note: StateFlow<String?> = _note.asStateFlow()
     private val apk = File(application.cacheDir, "updates/FitShare.apk")
+    private var lastCheck = 0L
+    /** "Later" hides this version until the next app start. */
+    private var dismissed: String? = null
 
     init {
+        viewModelScope.launch(Dispatchers.IO) { apk.parentFile?.deleteRecursively() } // the APK from the last update
+    }
+
+    /**
+     * Called whenever the app comes to the front, not just on a cold start: FitShare often waits in the
+     * background while a release comes out. [manual] (tap on the version) always asks and reports back.
+     */
+    fun check(manual: Boolean = false) {
         // debug builds carry the debug key, Android would refuse to put a release over them
-        if (!BuildConfig.DEBUG) viewModelScope.launch {
-            withContext(Dispatchers.IO) { apk.parentFile?.deleteRecursively() } // the APK from the last update
-            _state.value = fetchUpdate(BuildConfig.VERSION_NAME)?.let(::UpdateState)
+        if (BuildConfig.DEBUG || _state.value?.progress != null) return
+        val now = System.currentTimeMillis()
+        if (!manual && !checkDue(lastCheck, now)) return
+        lastCheck = now
+        if (manual) _note.value = null
+        viewModelScope.launch {
+            val latest = fetchLatest()
+            val newer = latest?.takeIf { isNewer(it.version, BuildConfig.VERSION_NAME) }
+            when {
+                newer != null && (manual || newer.version != dismissed) ->
+                    if (_state.value?.release?.version != newer.version) _state.value = UpdateState(newer)
+                manual -> _note.value = if (latest == null) tr("GitHub ist gerade nicht erreichbar.", "GitHub is not reachable right now.")
+                    else tr("Du hast die neueste Version.", "You have the latest version.")
+            }
         }
     }
 
-    fun later() { if (_state.value?.progress == null) _state.value = null }
+    fun later() {
+        val s = _state.value ?: return
+        if (s.progress == null) { dismissed = s.release.version; _state.value = null }
+    }
 
     fun install() {
         val s = _state.value?.takeIf { it.progress == null } ?: return

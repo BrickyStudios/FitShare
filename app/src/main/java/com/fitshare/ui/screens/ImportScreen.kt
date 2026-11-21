@@ -1,5 +1,6 @@
 package com.fitshare.ui.screens
 
+import com.fitshare.BuildConfig
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -85,7 +86,7 @@ private fun installedSources(ctx: Context): Map<Source, String> =
     }.toMap()
 
 @Composable
-fun ImportScreen(state: UiState, vm: WorkoutViewModel) {
+fun ImportScreen(state: UiState, vm: WorkoutViewModel, updateNote: String?, onCheckUpdate: () -> Unit) {
     val ctx = LocalContext.current
     val files = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.open(it) }
     val photo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { it?.let { uri -> vm.open(listOf(uri)) } }
@@ -209,6 +210,13 @@ fun ImportScreen(state: UiState, vm: WorkoutViewModel) {
                 style = Type.body.copy(fontSize = Type.label.fontSize * 1.15f, color = Muted),
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
             )
+            // which version runs here, and a tap asks GitHub right away
+            Box(Modifier.fillMaxWidth().heightIn(min = 44.dp).pressable(onClick = onCheckUpdate), contentAlignment = Alignment.CenterStart) {
+                Text(
+                    updateNote ?: tr("FitShare ${BuildConfig.VERSION_NAME} · nach Updates suchen", "FitShare ${BuildConfig.VERSION_NAME} · check for updates"),
+                    style = Type.body.copy(fontSize = Type.label.fontSize * 1.15f, color = Muted)
+                )
+            }
         }
     }
 }

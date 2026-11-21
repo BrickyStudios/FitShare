@@ -15,7 +15,12 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -27,7 +32,7 @@ import com.fitshare.data.WorkoutViewModel
 import com.fitshare.data.tr
 import com.fitshare.ui.screens.EditorScreen
 import com.fitshare.ui.screens.ImportScreen
-import com.fitshare.ui.screens.UpdateDialog
+import com.fitshare.ui.screens.UpdateBar
 import com.fitshare.ui.theme.FitShareTheme
 import com.fitshare.ui.theme.Ink
 import com.fitshare.ui.theme.uiSpring
@@ -43,8 +48,9 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) handleIntent(intent)
 
         setContent {
-            FitShareTheme {
+            FitShareTheme { Box(Modifier.fillMaxSize()) {
                 val state by vm.state.collectAsState()
+                val updateNote by updates.note.collectAsState()
                 AnimatedContent(
                     targetState = state.hasData,
                     modifier = Modifier.fillMaxSize().background(Ink),
@@ -57,12 +63,21 @@ class MainActivity : ComponentActivity() {
                     },
                     label = "screen"
                 ) { editing ->
-                    if (editing) EditorScreen(state, vm) else ImportScreen(state, vm)
+                    if (editing) EditorScreen(state, vm) else ImportScreen(state, vm, updateNote) { updates.check(manual = true) }
                 }
                 val update by updates.state.collectAsState()
-                update?.let { UpdateDialog(it, onInstall = updates::install, onLater = updates::later) }
-            }
+                update?.let {
+                    UpdateBar(it, onInstall = updates::install, onLater = updates::later,
+                        modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp))
+                }
+            } }
         }
+    }
+
+    // a cold start and every return to the app: FitShare often waits in the background while a release comes out
+    override fun onStart() {
+        super.onStart()
+        updates.check()
     }
 
     override fun onNewIntent(intent: Intent) {

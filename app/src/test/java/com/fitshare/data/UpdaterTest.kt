@@ -35,4 +35,11 @@ class UpdaterTest {
         assertNull(parseRelease("""{"message":"API rate limit exceeded"}"""))
         assertNull(parseRelease("<html>"))
     }
+
+    @Test
+    fun comingBackAsksGithubAtMostEveryTenMinutes() {
+        assertTrue(checkDue(0L, 1_795_000_000_000L)) // first start
+        assertFalse(checkDue(1_000_000L, 1_000_000L + 9 * 60_000L))
+        assertTrue(checkDue(1_000_000L, 1_000_000L + 10 * 60_000L))
+    }
 }

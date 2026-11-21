@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,9 +57,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -459,7 +464,8 @@ internal fun toggleStat(current: List<StatKey>, key: StatKey, max: Int): List<St
 private fun TabRow(labels: List<String>, selectedIndex: Int, accent: Color, small: Boolean = false, onSelect: (Int) -> Unit) {
     // centred when it fits, scrolls sideways when seven section tabs don't
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        Row(Modifier.horizontalScroll(rememberScrollState()).widthIn(min = maxWidth), horizontalArrangement = Arrangement.Center) {
+        val scroll = rememberScrollState()
+        Row(Modifier.fadeEnd(scroll).horizontalScroll(scroll).widthIn(min = maxWidth), horizontalArrangement = Arrangement.Center) {
             labels.forEachIndexed { i, text ->
                 val selected = selectedIndex == i
                 val color by animateColorAsState(if (selected) Bone else Muted.copy(alpha = 0.45f), uiSpring(), label = "tab")
@@ -481,8 +487,9 @@ private fun TabRow(labels: List<String>, selectedIndex: Int, accent: Color, smal
 
 @Composable
 private fun ChipRow(content: @Composable () -> Unit) {
+    val scroll = rememberScrollState()
     Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+        Modifier.fillMaxWidth().fadeEnd(scroll).horizontalScroll(scroll).padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) { content() }
 }
@@ -600,6 +607,16 @@ private fun ToolTile(
         }
     }
 }
+
+/** Fades the right edge while there is more to swipe to, so cut-off tabs and chips read as "scroll". */
+private fun Modifier.fadeEnd(state: ScrollState) = graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        if (state.canScrollForward) {
+            val w = 48.dp.toPx()
+            drawRect(Brush.horizontalGradient(listOf(Color.Black, Color.Transparent), startX = size.width - w, endX = size.width), blendMode = BlendMode.DstIn)
+        }
+    }
 
 /** Grey checkerboard behind the transparent sticker preview, like any image editor. */
 private fun Modifier.checkerboard(light: Boolean) = drawBehind {

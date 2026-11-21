@@ -59,6 +59,8 @@ h1 em { font-style: normal; color: var(--volt); }
 .tabs button { flex: none; display: flex; flex-direction: column; align-items: center; gap: 5px; min-height: 44px; padding: 6px 14px; font-size: 13px; font-weight: 700; letter-spacing: .18em; color: rgba(244,241,234,.45); transition: color .2s; }
 .tabs.small { justify-content: flex-start; overflow-x: auto; scrollbar-width: none; margin: 0 -20px; padding: 0 14px; }
 .tabs.small::-webkit-scrollbar { display: none; }
+/* a fading right edge says "swipe for more" while tabs or chips run off the screen */
+.more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent); }
 .tabs.small button { padding: 6px 7px; font-size: 12px; min-height: 36px; letter-spacing: .12em; }
 @media (max-width: 420px) { .tabs:not(.small) button { padding: 6px 9px; letter-spacing: .12em; } }
 .tabs button::after { content: ""; width: 5px; height: 5px; border-radius: 50%; background: transparent; }

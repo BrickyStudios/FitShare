@@ -170,6 +170,13 @@ function tabs(el, entries, selected, onPick) {
   }));
 }
 
+/** Marks a sideways-scrolling row while more of it lies to the right (CSS .more fades that edge). */
+function markOverflow(el) {
+  const update = () => el.classList.toggle("more", el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  if (!el.dataset.more) { el.dataset.more = "1"; el.addEventListener("scroll", update, { passive: true }); addEventListener("resize", update); }
+  update();
+}
+
 function chip(text, on, click, { color, dot, badge, remove } = {}) {
   const b = document.createElement("button");
   b.type = "button"; b.className = "chip"; b.setAttribute("aria-pressed", !!on);
@@ -264,6 +271,7 @@ function controls(w) {
     for (const [k, s] of Object.entries(D.SPORTS)) out.push(chip(D.sportLabel(k), w.sport === k, () => { state.sport = k; saveSession(); show(); }, { color: s.accent, dot: s.accent }));
   }
   $("chips").replaceChildren(...out);
+  markOverflow($("chips"));
 }
 
 function show() {
@@ -281,6 +289,7 @@ function show() {
   const secList = Object.fromEntries(Object.entries(SECTIONS).filter(([k]) => k !== "PHOTO" || state.background));
   if (!secList[state.section]) state.section = "LAYOUT";
   tabs(secs, secList, state.section, (k) => { state.section = k; show(); });
+  markOverflow(secs);
   controls(w);
 
   const photo = $("photo"), route = $("route");

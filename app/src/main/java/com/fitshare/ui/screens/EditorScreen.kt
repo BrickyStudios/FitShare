@@ -183,7 +183,11 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         if (granted) save() else Toast.makeText(ctx, tr("Ohne Speicherrecht kein Speichern", "Saving needs the storage permission"), Toast.LENGTH_SHORT).show()
     }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) { vm.setBackground(uri); section = Section.PHOTO } // photo options right away
+        if (uri != null) {
+            vm.setBackground(uri); section = Section.PHOTO // photo options right away
+            // whoever picks a video wants the video story, not a sticker over its first frame
+            if (ctx.contentResolver.getType(uri)?.startsWith("video/") == true) vm.updateOverlay { it.copy(withPhoto = true) }
+        }
     }
     val routePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { vm.open(it) }
 

@@ -142,6 +142,8 @@ function setBackground(file) {
       const cv = document.createElement("canvas"); cv.width = v.videoWidth; cv.height = v.videoHeight;
       cv.getContext("2d").drawImage(v, 0, 0);
       loaded(cv, cv.toDataURL("image/jpeg", 0.85), v);
+      // whoever picks a video wants the video story, not a sticker over its first frame
+      setOverlay({ withPhoto: true });
     };
     v.onerror = failed;
     v.src = url; v.load();

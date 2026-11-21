@@ -123,8 +123,12 @@ test("gps altitude jitter is not climbing", () => {
   // 10 km flat with ±4 m GPS jitter, then a real 100 m climb over 2 km
   const flat = Array.from({ length: 1000 }, (_, i) => ({ lat: 48.3 + (i * 10) / 111195, lon: 9.9, ele: 100 + (i % 2 ? -4 : 4), time: null }));
   const climb = Array.from({ length: 200 }, (_, i) => ({ lat: 48.3 + (10000 + i * 10) / 111195, lon: 9.9, ele: 100 + i * 0.5, time: null }));
-  const g = D.buildRoute([[...flat, ...climb]]).elevationGainMeters;
+  const r = D.buildRoute([[...flat, ...climb]]), g = r.elevationGainMeters;
   assert.ok(g >= 85 && g <= 105, String(g)); // raw with a 3 m step: over 4000 hm
+  // the graph over the flat part is flat too, not a ±4 m zigzag
+  assert.ok(r.profile.slice(0, 80).every((x) => x >= 99 && x <= 101), String(r.profile.slice(0, 80)));
+  // the top still shows; at the very end only the last 200 m are averaged, so it reads a few metres low
+  assert.ok(r.profile.at(-1) >= 190 && r.profile.at(-1) <= 200, String(r.profile.at(-1)));
 });
 
 test("moving time replaces time only if the watch never paused", () => {

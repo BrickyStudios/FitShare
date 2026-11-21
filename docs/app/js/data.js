@@ -193,11 +193,12 @@ function elevationProfile(segments, samples = 120) {
   const dist = [], ele = [];
   let d = 0;
   for (const seg of segments) {
-    let prev = null; // pauses don't add distance
+    let prev = null, k = 0; // pauses don't add distance
+    const smooth = smoothedElevation(seg); // same smoothing as the climb, so the graph doesn't zigzag
     for (const p of seg) {
       if (prev) d += haversine(prev, p);
       prev = p;
-      if (p.ele != null) { dist.push(d); ele.push(p.ele); }
+      if (p.ele != null) { dist.push(d); ele.push(smooth[k++]); }
     }
   }
   if (ele.length < 2 || d <= 0) return [];

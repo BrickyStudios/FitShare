@@ -211,10 +211,11 @@ object RouteParser {
         var d = 0.0; var prev: Pt? = null
         for (seg in segments) {
             prev = null // pauses don't add distance
+            val smooth = smoothedElevation(seg).iterator() // same smoothing as the climb, so the graph doesn't zigzag
             for (p in seg) {
                 prev?.let { d += haversine(it, p) }
                 prev = p
-                p.ele?.let { dist += d; ele += it }
+                if (p.ele != null) { dist += d; ele += smooth.next() }
             }
         }
         if (ele.size < 2 || d <= 0) return emptyList()

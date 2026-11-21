@@ -156,6 +156,10 @@ class ParsingTest {
         val climb = List(200) { i -> RouteParser.Pt(48.3 + (10_000 + i * 10) / 111_195.0, 9.9, 100.0 + i * 0.5, null) }
         val r = RouteParser.build(listOf(flat + climb))!!
         assertTrue("${r.elevationGainMeters}", r.elevationGainMeters in 85.0..105.0) // raw with a 3 m step: over 4000 hm
+        // the graph over the flat part is flat too, not a ±4 m zigzag
+        assertTrue(r.profile.take(80).toString(), r.profile.take(80).all { it in 99.0..101.0 })
+        // the top still shows; at the very end only the last 200 m are averaged, so it reads a few metres low
+        assertTrue("${r.profile.last()}", r.profile.last() in 190.0..200.0)
     }
 
     @Test fun movingTimeReplacesTimeOnlyIfTheWatchNeverPaused() {

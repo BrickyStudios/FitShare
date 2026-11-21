@@ -156,9 +156,9 @@ fun ImportScreen(state: UiState, vm: WorkoutViewModel) {
             Column {
                 Step("01", tr("Werte", "Numbers"), s.numbers)
                 s.map?.let { Step("02", tr("Karte · optional", "Map · optional"), it) }
-                Step(if (s.map == null) "02" else "03", "Sticker", tr(
-                    "Gestalten, als PNG speichern, in Instagram als Foto-Sticker einfügen.",
-                    "Style it, save the PNG, add it as a photo sticker in Instagram."
+                Step(if (s.map == null) "02" else "03", tr("Sticker oder Story", "Sticker or story"), tr(
+                    "Gestalten, dann als Sticker-PNG speichern oder als fertige Story mit deinem Foto oder Video.",
+                    "Style it, then save a sticker PNG or a finished story with your photo or video."
                 ))
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Hairline))
             }

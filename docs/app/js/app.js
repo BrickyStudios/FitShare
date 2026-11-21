@@ -459,7 +459,7 @@ function showSources() {
   $("steps").replaceChildren(
     step(tr("Werte", "Numbers"), source.numbers),
     step(tr("Karte · optional", "Map · optional"), source.map),
-    step("Sticker", ["Gestalten, als PNG sichern, in Instagram als Foto-Sticker einfügen.", "Style it, save the PNG, add it in Instagram as a photo sticker."]),
+    step(tr("Sticker oder Story", "Sticker or story"), ["Gestalten, dann als Sticker-PNG sichern oder als fertige Story mit deinem Foto oder Video.", "Style it, then save a sticker PNG or a finished story with your photo or video."]),
   );
   // bring the picked chip into view sideways only; scrollIntoView would also move the page
   const row = $("sources"), on = row.querySelector('[aria-pressed="true"]');

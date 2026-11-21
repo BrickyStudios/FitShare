@@ -79,7 +79,6 @@ import com.fitshare.data.UiState
 import com.fitshare.data.Workout
 import com.fitshare.data.WorkoutViewModel
 import com.fitshare.data.formatDistance
-import com.fitshare.data.formatInt
 import com.fitshare.data.StatKey
 import com.fitshare.data.availableStats
 import com.fitshare.data.pickStats
@@ -382,7 +381,8 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ToolTile(
                 title = tr("Foto · Video", "Photo · Video"),
-                detail = if (isVideo) "Video" else if (state.background != null) tr("Gesetzt", "Set") else tr("Hintergrund wählen", "Pick a background"),
+                // short enough for a half-width tile; the title already says what it is
+                detail = if (isVideo) "Video" else if (state.background != null) tr("Gesetzt", "Set") else tr("Wählen", "Pick"),
                 active = state.background != null,
                 modifier = Modifier.weight(1f),
                 onRemove = { vm.setBackground(null) },
@@ -393,7 +393,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                 title = tr("Route", "Route"),
                 detail = route?.let {
                     val d = formatDistance(it.distanceMeters)
-                    "${d.value} ${d.unit.lowercase()} · ${formatInt(it.pointCount)} " + tr("Pkt.", "pts")
+                    "${d.value} ${d.unit.lowercase()}"
                 } ?: "GPX · TCX · KML",
                 active = route != null,
                 modifier = Modifier.weight(1f),

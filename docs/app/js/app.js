@@ -294,12 +294,13 @@ function show() {
 
   const photo = $("photo"), route = $("route");
   photo.classList.toggle("on", !!state.background || !!state.backgroundUrl);
-  photo.querySelector("span").textContent = state.video ? "Video" : state.backgroundUrl ? tr("Gesetzt", "Set") : tr("Hintergrund wählen", "Pick a background");
+  // short enough for a half-width tile at 360 px; the tile title already says what it is
+  photo.querySelector("span").textContent = state.video ? "Video" : state.backgroundUrl ? tr("Gesetzt", "Set") : tr("Wählen", "Pick");
   $("save").textContent = videoStory() ? tr("MP4 sichern", "Save MP4") : tr("PNG sichern", "Save PNG");
   photo.querySelector("i").textContent = state.backgroundUrl ? "✕" : "+";
   route.classList.toggle("on", !!state.route);
   route.querySelector("span").textContent = state.route
-    ? `${D.formatDistance(state.route.distanceMeters).value} ${D.formatDistance(state.route.distanceMeters).unit.toLowerCase()} · ${D.formatInt(state.route.pointCount ?? 0)} ${tr("Pkt.", "pts")}`
+    ? `${D.formatDistance(state.route.distanceMeters).value} ${D.formatDistance(state.route.distanceMeters).unit.toLowerCase()}`
     : ROUTE_HINT;
   route.querySelector("i").textContent = state.route ? "✕" : "+";
   $("ed-hint").textContent = videoStory() ? (state.overlay.sound ? tr("Fertige Story 1080 × 1920 mit deinem Video und Ton", "Finished 1080 × 1920 story with your video and sound") : tr("Fertige Story 1080 × 1920 mit deinem Video, ohne Ton", "Finished 1080 × 1920 story with your video, no sound"))

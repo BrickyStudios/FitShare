@@ -188,6 +188,8 @@ test("stats, hero and pick order", () => {
   assert.deepEqual([c.hero.value, c.hero.unit], [tr("67,32", "67.32"), "KM"]);
   assert.deepEqual(c.cells.map((x) => x.key), ["TIME", "SPEED", "ELEVATION", "AVG_HR", "MAX_HR", "ENERGY"]);
   assert.equal(w.activeSeconds, 9000); // Mi Band counts every stop; the track's moving time wins
+  const last = D.availableStats(w).at(-1); // the bike offers min/km as well, last so Auto keeps km/h
+  assert.deepEqual([last.key, last.value, last.unit], ["PACE", "2:14", "/KM"]);
   assert.equal(c.cells[0].value, "2:30:00");
   assert.equal(c.cells[1].value, tr("26,9", "26.9"));
   assert.equal(c.cells[5].value, tr("1.310", "1,310"));

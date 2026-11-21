@@ -126,6 +126,8 @@ class ParsingTest {
         assertEquals("26,9", c.cells[1].value)
         assertEquals("1.310", c.cells[5].value)
         assertEquals(Sport.RUNNING, mergeWorkout(s, route, Sport.RUNNING).sport) // manual choice wins
+        // the bike offers min/km as well, last so Auto keeps km/h: 67.32 km in 2:30:00 = 2:14 /km
+        assertEquals(Stat(StatKey.PACE, "2:14", "/KM"), w.availableStats().last())
     }
 
     // Points along a meridian; each step is (metres, seconds) after the previous point.

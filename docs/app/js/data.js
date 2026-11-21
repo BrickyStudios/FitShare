@@ -105,6 +105,8 @@ export function availableStats(w) {
     else if (w.sport === "SWIMMING") speed = stat("PACE", paceMinSec(w.activeSeconds / (w.distanceMeters / 100)), "/100M");
     else speed = stat("PACE", paceMinSec(w.activeSeconds / (w.distanceMeters / 1000)), "/KM");
   }
+  // min/km on the bike too, for those who want it; listed last so "Auto" keeps km/h
+  const bikePace = hasMove && w.sport === "CYCLING" ? stat("PACE", paceMinSec(w.activeSeconds / (w.distanceMeters / 1000)), "/KM") : null;
   const avgHr = s.averageHR > 0 ? stat("AVG_HR", String(s.averageHR), "BPM") : null;
   const maxHr = s.maxHR > 0 ? stat("MAX_HR", String(s.maxHR), "BPM") : null;
   const kcal = s.calories > 0 ? stat("ENERGY", formatInt(s.calories), "KCAL") : null;
@@ -115,7 +117,7 @@ export function availableStats(w) {
   const strokes = s.strokes > 0 ? stat("STROKES", formatInt(s.strokes)) : null;
   const style = s.swimStyle ? stat("STYLE", swimStyleLabel(s.swimStyle)) : null;
   const order = {
-    CYCLING: [distance, time, speed, elev, avgHr, maxHr, kcal],
+    CYCLING: [distance, time, speed, elev, avgHr, maxHr, kcal, bikePace],
     RUNNING: [distance, time, speed, avgHr, steps, elev, kcal, maxHr],
     WALKING: [distance, time, speed, steps, elev, avgHr, kcal, maxHr],
     SWIMMING: [distance, time, speed, laps, swolf, strokes, kcal, style, avgHr, maxHr],

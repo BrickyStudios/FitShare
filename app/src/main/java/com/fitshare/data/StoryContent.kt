@@ -66,6 +66,8 @@ fun Workout.availableStats(): List<Stat> {
             Stat(StatKey.PACE, paceMinSec(activeSeconds / (distanceMeters / 100)), "/100M")
         else -> Stat(StatKey.PACE, paceMinSec(activeSeconds / (distanceMeters / 1000)), "/KM")
     }
+    // min/km on the bike too, for those who want it; listed last so "Auto" keeps km/h
+    val bikePace = if (hasMove && sport == Sport.CYCLING) Stat(StatKey.PACE, paceMinSec(activeSeconds / (distanceMeters / 1000)), "/KM") else null
     val avgHr = s.averageHR.takeIf { it > 0 }?.let { Stat(StatKey.AVG_HR, it.toString(), "BPM") }
     val maxHr = s.maxHR.takeIf { it > 0 }?.let { Stat(StatKey.MAX_HR, it.toString(), "BPM") }
     val kcal = s.calories.takeIf { it > 0 }?.let { Stat(StatKey.ENERGY, formatInt(it), "KCAL") }
@@ -77,7 +79,7 @@ fun Workout.availableStats(): List<Stat> {
     val style = s.swimStyle?.let { Stat(StatKey.STYLE, swimStyleLabel(it)) }
 
     val order = when (sport) {
-        Sport.CYCLING -> listOf(distance, time, speed, elev, avgHr, maxHr, kcal)
+        Sport.CYCLING -> listOf(distance, time, speed, elev, avgHr, maxHr, kcal, bikePace)
         Sport.RUNNING -> listOf(distance, time, speed, avgHr, steps, elev, kcal, maxHr)
         Sport.WALKING -> listOf(distance, time, speed, steps, elev, avgHr, kcal, maxHr)
         Sport.SWIMMING -> listOf(distance, time, speed, laps, swolf, strokes, kcal, style, avgHr, maxHr)

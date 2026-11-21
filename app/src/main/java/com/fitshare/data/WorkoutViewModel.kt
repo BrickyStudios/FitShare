@@ -1,5 +1,6 @@
 package com.fitshare.data
 
+import com.fitshare.export.VideoExporter
 import android.app.Application
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -185,15 +186,17 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             val copy = uri?.let {
                 withContext(Dispatchers.IO) {
                     runCatching {
-                        val target = File(files, "background-${System.currentTimeMillis()}")
-                        getApplication<Application>().contentResolver.openInputStream(it)!!.use { input ->
+                        val resolver = getApplication<Application>().contentResolver
+                        val video = resolver.getType(it)?.startsWith("video/") == true
+                        val target = File(files, "background-${System.currentTimeMillis()}" + if (video) VideoExporter.VIDEO_SUFFIX else "")
+                        resolver.openInputStream(it)!!.use { input ->
                             target.outputStream().use { out -> input.copyTo(out) }
                         }
                         target
                     }.getOrNull()
                 }
             }
-            if (uri != null && copy == null) { _state.update { it.copy(error = tr("Foto konnte nicht geladen werden.", "Couldn't load the photo.")) }; return@launch }
+            if (uri != null && copy == null) { _state.update { it.copy(error = tr("Foto oder Video konnte nicht geladen werden.", "Couldn't load the photo or video.")) }; return@launch }
             withContext(Dispatchers.IO) { deleteBackgrounds(except = copy) }
             _state.update { it.copy(background = copy?.let(Uri::fromFile)) }
         }

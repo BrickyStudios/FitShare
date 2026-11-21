@@ -275,3 +275,15 @@ test("photo-in-PNG placement and gradient stops stay on the story", async () => 
   }
   assert.equal(stickerTop(0, 400, 1920), 760);
 });
+
+test("photo or video that isn't 9:16: fit box and backdrop choice", async () => {
+  const { fitBox, needsBackdrop, BACKDROPS, BACKDROP_LABELS } = await import("../docs/app/js/render.js");
+  assert.deepEqual(fitBox(1920, 1080, 1080, 1920), [0, 656.25, 1080, 1263.75]); // phone video held sideways
+  const tall = fitBox(1080, 2400, 1080, 1920); // 9:20 screenshot: bars left and right
+  near(tall[3] - tall[1], 1920, 0.01);
+  assert.ok(tall[0] > 0);
+  assert.ok(needsBackdrop(1920, 1080) && needsBackdrop(3000, 4000)); // landscape, 3:4 camera photo
+  assert.ok(!needsBackdrop(1080, 1920) && !needsBackdrop(1080, 1910) && !needsBackdrop(0, 0));
+  assert.equal(BACKDROPS.length, BACKDROP_LABELS.length);
+  assert.ok(BACKDROPS[0] === null && BACKDROPS[1] === null); // crop and matching have no fixed colours
+});

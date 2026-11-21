@@ -79,7 +79,13 @@ import com.fitshare.data.StatKey
 import com.fitshare.data.availableStats
 import com.fitshare.data.pickStats
 import com.fitshare.data.tr
+import com.fitshare.export.BACKDROPS
+import com.fitshare.export.BURGUNDY
 import com.fitshare.export.DIM_LEVELS
+import com.fitshare.export.NAVY
+import com.fitshare.export.VideoExporter
+import com.fitshare.export.backdropLabel
+import com.fitshare.export.needsBackdrop
 import com.fitshare.export.InkColor
 import com.fitshare.export.PLACE_ORDER
 import com.fitshare.export.SIZE_ORDER
@@ -147,16 +153,31 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
 
     fun renderFull() = StoryRenderer.render(ctx, workout, style, background, overlay = overlay, format = format)
 
+    // a video baked into the story exports as MP4; as a sticker it stays a PNG like a photo
+    val isVideo = VideoExporter.isVideo(state.background)
+    val videoStory = style == StoryStyle.OVERLAY && overlay.withPhoto && isVideo && background != null
+    var progress by remember { mutableStateOf<Int?>(null) }
+
+    suspend fun renderVideo(): java.io.File {
+        val frame = withContext(Dispatchers.Default) { StoryRenderer.render(ctx, workout, style, background, overlay = overlay, videoHole = true) }
+        progress = 0
+        try {
+            return VideoExporter.export(ctx, state.background!!, frame, crop = overlay.backdrop == 0, keepSound = overlay.sound, ShareHelper.newVideoFile(ctx)) { progress = it }
+        } finally {
+            frame.recycle(); progress = null
+        }
+    }
+
     fun save() = scope.launch {
         busy = true
-        val ok = ShareHelper.saveToGallery(ctx, withContext(Dispatchers.Default) { renderFull() })
+        val ok = try {
+            if (videoStory) ShareHelper.saveVideoToGallery(ctx, renderVideo())
+            else ShareHelper.saveToGallery(ctx, withContext(Dispatchers.Default) { renderFull() })
+        } catch (e: Exception) { false }
         busy = false
         if (ok && style == StoryStyle.OVERLAY) vm.rememberLook()
-        Toast.makeText(
-            ctx,
-            if (ok) tr("Gespeichert in Bilder/FitShare", "Saved to Pictures/FitShare") else tr("Speichern hat nicht geklappt", "Saving failed"),
-            Toast.LENGTH_SHORT
-        ).show()
+        val where = if (videoStory) tr("Gespeichert in Filme/FitShare", "Saved to Movies/FitShare") else tr("Gespeichert in Bilder/FitShare", "Saved to Pictures/FitShare")
+        Toast.makeText(ctx, if (ok) where else tr("Speichern hat nicht geklappt", "Saving failed"), Toast.LENGTH_SHORT).show()
     }
     val storagePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) save() else Toast.makeText(ctx, tr("Ohne Speicherrecht kein Speichern", "Saving needs the storage permission"), Toast.LENGTH_SHORT).show()
@@ -298,7 +319,16 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                     Section.PHOTO -> {
                         // every option here only works with the photo baked in, so picking one switches that on
                         fun bake(f: (OverlayOptions) -> OverlayOptions) = vm.updateOverlay { f(it).copy(withPhoto = true) }
-                        Chip(tr("Foto ins PNG", "Photo in PNG"), overlay.withPhoto, accent) { vm.updateOverlay { it.copy(withPhoto = !it.withPhoto) } }
+                        Chip(if (isVideo) tr("Video ins MP4", "Video in MP4") else tr("Foto ins PNG", "Photo in PNG"), overlay.withPhoto, accent) { vm.updateOverlay { it.copy(withPhoto = !it.withPhoto) } }
+                        // only a picture that isn't 9:16 leaves room to fill
+                        val bg = background
+                        if (bg != null && needsBackdrop(bg.width, bg.height)) {
+                            Hint(tr("FORMAT", "FORMAT"))
+                            BACKDROPS.indices.forEach { i ->
+                                val dot = when (i) { 2 -> Color(NAVY); 3 -> Color(BURGUNDY); 5 -> Color(0xFF0C0D0B); else -> null }
+                                Chip(backdropLabel(i), overlay.withPhoto && overlay.backdrop == i, accent, dot = dot) { bake { it.copy(backdrop = i) } }
+                            }
+                        }
                         Hint(tr("POSITION", "POSITION"))
                         PLACE_ORDER.forEach { i -> Chip(placeLabel(i), overlay.withPhoto && overlay.place == i, accent) { bake { it.copy(place = i) } } }
                         Hint(tr("GRÖSSE", "SIZE"))
@@ -309,7 +339,10 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         Chip(tr("Verlauf", "Gradient"), overlay.withPhoto && overlay.fade, accent) {
                             bake { it.copy(fade = !(it.withPhoto && it.fade), dim = if (it.dim == 0) 2 else it.dim) }
                         }
-                        Chip(tr("Weich", "Blur"), overlay.withPhoto && overlay.soft, accent) { bake { it.copy(soft = !(it.withPhoto && it.soft)) } }
+                        // a video can't be blurred by an overlay
+                        if (!isVideo) Chip(tr("Weich", "Blur"), overlay.withPhoto && overlay.soft, accent) { bake { it.copy(soft = !(it.withPhoto && it.soft)) } }
+                        // silent by default: Instagram music goes on top
+                        if (isVideo) Chip(tr("Ton behalten", "Keep sound"), overlay.withPhoto && overlay.sound, accent) { bake { it.copy(sound = !(it.withPhoto && it.sound)) } }
                     }
                     Section.SPORT -> {
                         // full stories: format first (story or feed post), then the sport
@@ -332,12 +365,12 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         // tools
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ToolTile(
-                title = tr("Foto", "Photo"),
-                detail = if (state.background != null) tr("Gesetzt", "Set") else tr("Hintergrund wählen", "Pick a background"),
+                title = tr("Foto · Video", "Photo · Video"),
+                detail = if (isVideo) "Video" else if (state.background != null) tr("Gesetzt", "Set") else tr("Hintergrund wählen", "Pick a background"),
                 active = state.background != null,
                 modifier = Modifier.weight(1f),
                 onRemove = { vm.setBackground(null) },
-                onClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                onClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) }
             )
             val route = state.route
             ToolTile(
@@ -363,8 +396,8 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         scope.launch {
                             busy = true
                             try {
-                                val bmp = withContext(Dispatchers.Default) { renderFull() }
-                                ShareHelper.share(ctx, ShareHelper.cacheForSharing(ctx, bmp))
+                                if (videoStory) ShareHelper.share(ctx, ShareHelper.uriFor(ctx, renderVideo()), "video/mp4")
+                                else ShareHelper.share(ctx, ShareHelper.cacheForSharing(ctx, withContext(Dispatchers.Default) { renderFull() }))
                                 if (style == StoryStyle.OVERLAY) vm.rememberLook()
                             } catch (e: Exception) {
                                 Toast.makeText(ctx, tr("Teilen fehlgeschlagen: ", "Sharing failed: ") + e.message, Toast.LENGTH_LONG).show()
@@ -380,7 +413,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             ) {
                 Text(tr("Teilen", "Share"), style = Type.button.copy(color = Bone))
             }
-            BigButton(tr("PNG speichern", "Save PNG"), Modifier.weight(0.62f), color = accent, busy = busy) {
+            BigButton(if (videoStory) tr("MP4 speichern", "Save MP4") else tr("PNG speichern", "Save PNG"), Modifier.weight(0.62f), color = accent, busy = busy) {
                 view.performHapticFeedback(
                     if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
                 )
@@ -390,10 +423,15 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             }
         }
         Text(
-            if (style == StoryStyle.OVERLAY && overlay.withPhoto && background != null) tr("Fertige Story 1080 × 1920 mit deinem Foto", "Finished 1080 × 1920 story with your photo")
-            else if (style == StoryStyle.OVERLAY) tr("Instagram: Story öffnen → Sticker → Foto → PNG wählen", "Instagram: open a story → Stickers → Photo → pick the PNG")
-            else if (format == StoryFormat.FEED) tr("Fertiger Beitrag 1080 × 1350 für den Instagram-Feed", "Finished 1080 × 1350 post for the Instagram feed")
-            else tr("Fertige Story 1080 × 1920, als Hintergrund in Instagram", "Finished 1080 × 1920 story, use it as the Instagram background"),
+            when {
+                progress != null -> tr("Video wird erstellt … $progress %", "Making the video … $progress %")
+                videoStory && overlay.sound -> tr("Fertige Story 1080 × 1920 mit deinem Video und Ton", "Finished 1080 × 1920 story with your video and sound")
+                videoStory -> tr("Fertige Story 1080 × 1920 mit deinem Video, ohne Ton", "Finished 1080 × 1920 story with your video, no sound")
+                style == StoryStyle.OVERLAY && overlay.withPhoto && background != null -> tr("Fertige Story 1080 × 1920 mit deinem Foto", "Finished 1080 × 1920 story with your photo")
+                style == StoryStyle.OVERLAY -> tr("Instagram: Story öffnen → Sticker → Foto → PNG wählen", "Instagram: open a story → Stickers → Photo → pick the PNG")
+                format == StoryFormat.FEED -> tr("Fertiger Beitrag 1080 × 1350 für den Instagram-Feed", "Finished 1080 × 1350 post for the Instagram feed")
+                else -> tr("Fertige Story 1080 × 1920, als Hintergrund in Instagram", "Finished 1080 × 1920 story, use it as the Instagram background")
+            },
             style = Type.body.copy(fontSize = Type.label.fontSize * 1.1f),
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
         )

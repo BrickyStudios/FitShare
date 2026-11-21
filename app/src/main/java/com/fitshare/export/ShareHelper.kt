@@ -62,12 +62,56 @@ object ShareHelper {
         FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     }
 
-    fun share(context: Context, uri: Uri) {
+    /** An empty file for the next video export, next to the shared PNGs (only the latest story is ever needed). */
+    fun newVideoFile(context: Context): File {
+        val dir = File(context.cacheDir, "stories").apply { mkdirs() }
+        dir.listFiles()?.forEach { it.delete() }
+        return File(dir, "fitshare_${System.currentTimeMillis()}.mp4")
+    }
+
+    fun uriFor(context: Context, file: File): Uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+
+    /** Copies an exported MP4 to Movies/FitShare. API < 29 needs WRITE_EXTERNAL_STORAGE granted beforehand. */
+    suspend fun saveVideoToGallery(context: Context, file: File): Boolean = withContext(Dispatchers.IO) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val values = ContentValues().apply {
+                put(MediaStore.Video.Media.DISPLAY_NAME, file.name)
+                put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+                put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/FitShare")
+                put(MediaStore.Video.Media.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values) ?: return@withContext false
+            try {
+                resolver.openOutputStream(uri)?.use { out -> file.inputStream().use { it.copyTo(out) } } ?: error("no stream")
+                resolver.update(uri, ContentValues().apply { put(MediaStore.Video.Media.IS_PENDING, 0) }, null, null)
+                true
+            } catch (e: Exception) {
+                resolver.delete(uri, null, null)
+                false
+            }
+        } else {
+            try {
+                @Suppress("DEPRECATION")
+                val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "FitShare")
+                dir.mkdirs()
+                val target = File(dir, file.name)
+                file.copyTo(target, overwrite = true)
+                MediaScannerConnection.scanFile(context, arrayOf(target.path), arrayOf("video/mp4"), null)
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
+
+    fun share(context: Context, uri: Uri, mime: String = "image/png") {
         val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "image/png"
+            type = mime
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, com.fitshare.data.tr("Bild teilen", "Share image")))
+        val title = if (mime.startsWith("video/")) com.fitshare.data.tr("Video teilen", "Share video") else com.fitshare.data.tr("Bild teilen", "Share image")
+        context.startActivity(Intent.createChooser(intent, title))
     }
 }

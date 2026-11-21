@@ -11,6 +11,8 @@ import android.graphics.ImageDecoder
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RadialGradient
 import android.graphics.Rect
 import android.graphics.RectF
@@ -75,11 +77,13 @@ object StoryRenderer {
         background: Bitmap?,
         scale: Float = 1f,
         overlay: OverlayOptions = OverlayOptions(),
-        format: StoryFormat = StoryFormat.STORY
+        format: StoryFormat = StoryFormat.STORY,
+        /** For a video story: leave the picture area transparent, the video shows through there. */
+        videoHole: Boolean = false
     ): Bitmap {
         val h = format.height
         if (style == StoryStyle.OVERLAY) {
-            return if (overlay.withPhoto && background != null) stickerOnPhoto(context, workout, overlay, background, scale)
+            return if (overlay.withPhoto && background != null) stickerOnPhoto(context, workout, overlay, background, scale, videoHole)
             else OverlayRenderer.render(context, workout, overlay, scale)
         }
         val bmp = Bitmap.createBitmap((W * scale).roundToInt(), (h * scale).roundToInt(), Bitmap.Config.ARGB_8888)
@@ -97,11 +101,20 @@ object StoryRenderer {
     }
 
     /** The overlay baked onto the photo as a finished 9:16 story; here "darken" dims the whole photo evenly. */
-    private fun stickerOnPhoto(context: Context, workout: Workout, o: OverlayOptions, photo: Bitmap, scale: Float): Bitmap {
+    private fun stickerOnPhoto(context: Context, workout: Workout, o: OverlayOptions, photo: Bitmap, scale: Float, videoHole: Boolean): Bitmap {
         val bmp = Bitmap.createBitmap((W * scale).roundToInt(), (H * scale).roundToInt(), Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         c.scale(scale, scale)
-        if (o.soft) softened(photo).also { drawCropped(c, it, H); it.recycle() } else drawCropped(c, photo, H)
+        when {
+            videoHole -> if (o.backdrop > 0) {
+                drawBackdrop(c, photo, o.backdrop)
+                // 2 px into the video, so rounding on the GPU never leaves a black seam
+                val b = fitBox(photo.width, photo.height, W, H)
+                c.drawRect(b[0] + 2, b[1] + 2, b[2] - 2, b[3] - 2, Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) })
+            }
+            o.soft -> softened(photo).also { drawMedia(c, it, o.backdrop); it.recycle() }
+            else -> drawMedia(c, photo, o.backdrop)
+        }
         val sticker = OverlayRenderer.render(context, workout, o.copy(dim = 0), 1f)
         val k = minOf(SIZES.getOrElse(o.size) { 1f }, H * 0.9f / sticker.height)
         val sw = W * k; val sh = sticker.height * k
@@ -175,6 +188,33 @@ object StoryRenderer {
         val p = Paint().apply { this.color = alpha(color, strength); strokeWidth = 2.2f }
         val pts = FloatArray(18000) { if (it % 2 == 0) rnd.nextFloat() * W else rnd.nextFloat() * h }
         c.drawPoints(pts, p)
+    }
+
+    /** Crops to fill (backdrop 0) or fits the whole picture onto a backdrop. */
+    private fun drawMedia(c: Canvas, src: Bitmap, backdrop: Int) {
+        if (backdrop == 0) return drawCropped(c, src, H)
+        drawBackdrop(c, src, backdrop)
+        val b = fitBox(src.width, src.height, W, H)
+        c.drawBitmap(src, null, RectF(b[0], b[1], b[2], b[3]), Paint(Paint.FILTER_BITMAP_FLAG))
+    }
+
+    private fun drawBackdrop(c: Canvas, src: Bitmap, backdrop: Int) {
+        val (top, bottom) = (BACKDROPS.getOrNull(backdrop) ?: edgeColors(src)).let { it[0] to it[1] }
+        c.drawRect(0f, 0f, W, H, Paint().apply { shader = LinearGradient(0f, 0f, 0f, H, top, bottom, Shader.TileMode.CLAMP) })
+    }
+
+    /** Average colour of the picture's top and bottom eighth, so the backdrop continues the picture. */
+    private fun edgeColors(src: Bitmap): IntArray {
+        val small = Bitmap.createScaledBitmap(src, 32, max(8, 32 * src.height / src.width), true)
+        val n = max(1, small.height / 8)
+        fun avg(y0: Int, y1: Int): Int {
+            var r = 0L; var g = 0L; var b = 0L; var count = 0
+            for (y in y0 until y1) for (x in 0 until small.width) {
+                val p = small.getPixel(x, y); r += Color.red(p); g += Color.green(p); b += Color.blue(p); count++
+            }
+            return Color.rgb((r / count).toInt(), (g / count).toInt(), (b / count).toInt())
+        }
+        return intArrayOf(avg(0, n), avg(small.height - n, small.height)).also { if (small !== src) small.recycle() }
     }
 
     private fun drawCropped(c: Canvas, src: Bitmap, h: Float) {
@@ -379,8 +419,8 @@ object StoryRenderer {
 
     // ---------------------------------------------------------------- photos
 
-    /** Decodes a picked photo downsampled to story size, honouring EXIF rotation on API 28+. */
-    fun decodeBackground(context: Context, uri: Uri): Bitmap? = try {
+    /** Decodes a picked photo downsampled to story size, honouring EXIF rotation on API 28+. A video gives its first frame. */
+    fun decodeBackground(context: Context, uri: Uri): Bitmap? = if (VideoExporter.isVideo(uri)) VideoExporter.firstFrame(context, uri) else try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri)) { d, info, _ ->
                 val k = maxOf(1, minOf(info.size.width / W.toInt(), info.size.height / H.toInt()))

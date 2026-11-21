@@ -73,8 +73,33 @@ data class OverlayOptions(
     /** Darken as a gradient around the numbers instead of evenly. */
     val fade: Boolean = false,
     /** Blur the photo so the numbers stand out. */
-    val soft: Boolean = false
+    val soft: Boolean = false,
+    /** Index into [BACKDROPS]: how a photo or video that isn't 9:16 fills the story. 0 = crop to fill, the old look. */
+    val backdrop: Int = 0,
+    /** Video stories come out silent so Instagram music fits; this keeps the clip's own sound. */
+    val sound: Boolean = false
 )
+
+const val NAVY = 0xFF14213D.toInt()
+const val BURGUNDY = 0xFF6B1E2E.toInt()
+private const val BLACK = 0xFF0C0D0B.toInt()
+
+/**
+ * Top and bottom colour behind a fitted picture. 0 crops instead, 1 continues the picture's own top and bottom
+ * edge (like Instagram does), the rest are fixed.
+ */
+val BACKDROPS: List<IntArray?> = listOf(null, null, intArrayOf(NAVY, NAVY), intArrayOf(BURGUNDY, BURGUNDY), intArrayOf(NAVY, BURGUNDY), intArrayOf(BLACK, BLACK))
+fun backdropLabel(i: Int) = listOf(tr("Füllen", "Fill"), tr("Passend", "Matching"), "Navy", tr("Burgund", "Burgundy"), tr("Navy → Burgund", "Navy → burgundy"), tr("Schwarz", "Black"))[i]
+
+/** True if a w×h picture is more than 2 % off the 9:16 story shape, so there is something for a backdrop to fill. */
+fun needsBackdrop(w: Int, h: Int): Boolean = w > 0 && h > 0 && kotlin.math.abs(w.toFloat() / h / (9f / 16f) - 1f) > 0.02f
+
+/** The w×h picture fitted whole into a boxW×boxH story, centred: left, top, right, bottom. */
+fun fitBox(w: Int, h: Int, boxW: Float, boxH: Float): FloatArray {
+    val k = minOf(boxW / w, boxH / h)
+    val fw = w * k; val fh = h * k
+    return floatArrayOf((boxW - fw) / 2, (boxH - fh) / 2, (boxW + fw) / 2, (boxH + fh) / 2)
+}
 
 /** Off, light, medium, strong. */
 val DIM_LEVELS = floatArrayOf(0f, 0.25f, 0.45f, 0.65f)

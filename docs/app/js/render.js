@@ -15,7 +15,20 @@ export const defaultOverlay = () => ({
   showHeart: false, showSplits: false, showDate: false, showBrand: true, dim: 0, withPhoto: false,
   // photo-in-PNG only; index 0 is always the original look
   place: 0, size: 0, fade: false, soft: false,
+  // backdrop: how a photo or video that isn't 9:16 fills the story (0 = crop, the old look); sound: keep the video's own sound
+  backdrop: 0, sound: false,
 });
+export const NAVY = "#14213D", BURGUNDY = "#6B1E2E";
+/** Top and bottom colour behind a fitted picture. 0 crops instead, 1 continues the picture's own edges (like Instagram). */
+export const BACKDROPS = [null, null, [NAVY, NAVY], [BURGUNDY, BURGUNDY], [NAVY, BURGUNDY], ["#0C0D0B", "#0C0D0B"]];
+export const BACKDROP_LABELS = [["Füllen", "Fill"], ["Passend", "Matching"], ["Navy", "Navy"], ["Burgund", "Burgundy"], ["Navy → Burgund", "Navy → burgundy"], ["Schwarz", "Black"]];
+/** True if a w×h picture is more than 2 % off the 9:16 story shape, so there is something for a backdrop to fill. */
+export const needsBackdrop = (w, h) => w > 0 && h > 0 && Math.abs(w / h / (9 / 16) - 1) > 0.02;
+/** The w×h picture fitted whole into a boxW×boxH story, centred: [left, top, right, bottom]. */
+export function fitBox(w, h, boxW, boxH) {
+  const k = Math.min(boxW / w, boxH / h), fw = w * k, fh = h * k;
+  return [(boxW - fw) / 2, (boxH - fh) / 2, (boxW + fw) / 2, (boxH + fh) / 2];
+}
 /** Off, light, medium, strong. */
 export const DIM_LEVELS = [0, 0.25, 0.45, 0.65];
 export const DIM_LABELS = [["Aus", "Off"], ["Leicht", "Light"], ["Mittel", "Medium"], ["Stark", "Strong"]];
@@ -334,8 +347,9 @@ function grain(c, color, strength, h) {
   c.fillStyle = alpha(color, strength);
   for (let i = 0; i < 9000; i++) c.fillRect(r() * W - 1.1, r() * h - 1.1, 2.2, 2.2);
 }
+const sizeOf = (img) => [img.videoWidth || img.naturalWidth || img.width, img.videoHeight || img.naturalHeight || img.height];
 function drawCropped(c, img, h) {
-  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  const [iw, ih] = sizeOf(img);
   const src = iw / ih, dst = W / h;
   if (src > dst) { const w = ih * dst; c.drawImage(img, (iw - w) / 2, 0, w, ih, 0, 0, W, h); }
   else { const hh = iw / dst; c.drawImage(img, 0, (ih - hh) / 2, iw, hh, 0, 0, W, h); }
@@ -343,12 +357,19 @@ function drawCropped(c, img, h) {
 
 /** 1080×1920 story or 1080×1350 feed post. The editor preview calls this at a smaller scale. */
 /** The overlay baked onto the photo as a finished 9:16 story; here "darken" dims the whole photo evenly. */
-function stickerOnPhoto(workout, o, photo, scale) {
+function stickerOnPhoto(workout, o, photo, scale, videoHole) {
   const H = FORMATS.STORY[1];
   const cv = newCanvas(W * scale, H * scale);
   const c = cv.getContext("2d");
   c.scale(scale, scale);
-  drawCropped(c, o.soft ? softened(photo) : photo, H);
+  if (videoHole) {
+    if (o.backdrop > 0) {
+      drawBackdrop(c, photo, o.backdrop, H);
+      // 2 px into the video, so scaling never leaves a seam
+      const [l, t, r, b] = fitBox(...sizeOf(photo), W, H);
+      c.clearRect(l + 2, t + 2, r - l - 4, b - t - 4);
+    }
+  } else drawMedia(c, o.soft ? softened(photo) : photo, o.backdrop, H);
   const sticker = renderOverlay(workout, { ...o, dim: 0 }, 1);
   const k = Math.min(SIZES[o.size] ?? 1, (H * 0.9) / sticker.height), sw = W * k, sh = sticker.height * k;
   const top = stickerTop(o.place, sh, H);
@@ -362,6 +383,35 @@ function stickerOnPhoto(workout, o, photo, scale) {
   return cv;
 }
 
+/** Crops to fill (backdrop 0) or fits the whole picture onto a backdrop. Also paints video frames at export. */
+export function drawMedia(c, src, backdrop, h = FORMATS.STORY[1], paintBackdrop = true) {
+  if (!backdrop) return drawCropped(c, src, h);
+  if (paintBackdrop) drawBackdrop(c, src, backdrop, h);
+  const [l, t, r, b] = fitBox(...sizeOf(src), W, h);
+  c.drawImage(src, l, t, r - l, b - t);
+}
+
+function drawBackdrop(c, src, backdrop, h) {
+  const [top, bottom] = BACKDROPS[backdrop] || edgeColors(src);
+  const g = c.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, top); g.addColorStop(1, bottom);
+  c.fillStyle = g; c.fillRect(0, 0, W, h);
+}
+
+/** Average colour of the picture's top and bottom eighth, so the backdrop continues the picture. */
+function edgeColors(src) {
+  const [w, h] = sizeOf(src), sh = Math.max(8, Math.round((32 * h) / w)), n = Math.max(1, Math.floor(sh / 8));
+  const cv = newCanvas(32, sh), x = cv.getContext("2d");
+  x.drawImage(src, 0, 0, 32, sh);
+  const avg = (y0, y1) => {
+    const d = x.getImageData(0, y0, 32, y1 - y0).data; let r = 0, g = 0, b = 0;
+    for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+    const k = d.length / 4;
+    return `rgb(${Math.round(r / k)},${Math.round(g / k)},${Math.round(b / k)})`;
+  };
+  return [avg(0, n), avg(sh - n, sh)];
+}
+
 /** Strong blur without ctx.filter (Safari lacks it): halve down to 1/16, scale back up in steps. */
 function softened(img) {
   const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
@@ -372,8 +422,9 @@ function softened(img) {
   return cur;
 }
 
-export function render(workout, style, background, overlay, format = "STORY", scale = 1) {
-  if (style === "OVERLAY") return overlay.withPhoto && background ? stickerOnPhoto(workout, overlay, background, scale) : renderOverlay(workout, overlay, scale);
+/** videoHole: for a video story, leave the picture area transparent so the video shows through. */
+export function render(workout, style, background, overlay, format = "STORY", scale = 1, videoHole = false) {
+  if (style === "OVERLAY") return overlay.withPhoto && background ? stickerOnPhoto(workout, overlay, background, scale, videoHole) : renderOverlay(workout, overlay, scale);
   const h = FORMATS[format][1];
   const cv = newCanvas(W * scale, h * scale);
   const c = cv.getContext("2d");

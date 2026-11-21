@@ -5,6 +5,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PhotoPlacementTest {
+    @Test fun landscapeVideoFitsWithBarsAboveAndBelow() {
+        val b = fitBox(1920, 1080, 1080f, 1920f) // phone video held sideways
+        assertEquals(listOf(0f, 656.25f, 1080f, 1263.75f), b.toList())
+        val tall = fitBox(1080, 2400, 1080f, 1920f) // 9:20 screenshot: bars left and right
+        assertEquals(1920f, tall[3] - tall[1], 0.01f)
+        assertTrue(tall[0] > 0f)
+    }
+
+    @Test fun backdropOnlyWhenThePictureIsNot916() {
+        assertTrue(needsBackdrop(1920, 1080))
+        assertTrue(needsBackdrop(3000, 4000)) // 3:4 camera photo
+        assertTrue(!needsBackdrop(1080, 1920))
+        assertTrue(!needsBackdrop(1080, 1910)) // within 2 %
+        assertTrue(!needsBackdrop(0, 0))
+        assertEquals(BACKDROPS.size, (0 until BACKDROPS.size).map { backdropLabel(it) }.size)
+        assertTrue(BACKDROPS[0] == null && BACKDROPS[1] == null) // crop and matching have no fixed colours
+    }
+
     @Test fun stopsStayOrderedAndInRange() {
         for (place in 0..2) for ((y0, y1) in listOf(0f to 400f, 150f to 900f, 1200f to 1920f, 700f to 700f)) {
             val (pos, share) = fadeStops(place, y0, y1, 1920f)

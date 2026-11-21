@@ -12,8 +12,8 @@ android {
         applicationId = "com.fitshare"
         minSdk = 26
         targetSdk = 35
-        versionCode = 16
-        versionName = "1.11.0"
+        versionCode = 17
+        versionName = "1.12.0"
     }
 
     // Release key lives only in CI secrets (and ~/.config/fitshare on the maintainer's machine).
@@ -68,6 +68,10 @@ dependencies {
     implementation(libs.gson)
     // OCR for share pictures, model inside the APK: works on Huawei and degoogled phones without Play Services
     implementation(libs.mlkit.text)
+    // video backgrounds: decode, fit, overlay and re-encode to MP4 without sound
+    implementation(libs.media3.transformer)
+    implementation(libs.media3.effect)
+    implementation(libs.media3.common)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
 }

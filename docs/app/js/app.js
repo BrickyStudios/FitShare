@@ -1,6 +1,6 @@
 // FitShare web app: state, file import, OCR, editor UI and export.
 import * as D from "./data.js";
-import { DIM_LABELS, PLACES, SIZE_CHIPS, FORMATS, INKS, LAYOUTS, STYLES, defaultOverlay, render } from "./render.js";
+import { BACKDROPS, BACKDROP_LABELS, BURGUNDY, DIM_LABELS, NAVY, PLACES, SIZE_CHIPS, FORMATS, INKS, LAYOUTS, STYLES, defaultOverlay, drawMedia, needsBackdrop, render } from "./render.js";
 
 const { tr } = D;
 const $ = (id) => document.getElementById(id);
@@ -15,12 +15,13 @@ const store = {
   get(k, fallback) { try { const v = localStorage.getItem("fs." + k); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } },
   set(k, v) { try { if (v == null) localStorage.removeItem("fs." + k); else localStorage.setItem("fs." + k, JSON.stringify(v)); } catch { /* private mode or full */ } },
 };
-const cleanOverlay = (o) => ({ ...defaultOverlay(), ...(o && typeof o === "object" ? o : {}), layout: LAYOUTS[o?.layout] ? o.layout : "STACK", ink: INKS[o?.ink] ? o.ink : "WHITE", dim: DIM_LABELS[o?.dim] ? o.dim : 0, place: [0, 1, 2].includes(o?.place) ? o.place : 0, size: [0, 1, 2].includes(o?.size) ? o.size : 0 });
+const cleanOverlay = (o) => ({ ...defaultOverlay(), ...(o && typeof o === "object" ? o : {}), layout: LAYOUTS[o?.layout] ? o.layout : "STACK", ink: INKS[o?.ink] ? o.ink : "WHITE", dim: DIM_LABELS[o?.dim] ? o.dim : 0, place: [0, 1, 2].includes(o?.place) ? o.place : 0, size: [0, 1, 2].includes(o?.size) ? o.size : 0, backdrop: Number.isInteger(o?.backdrop) && o.backdrop >= 0 && o.backdrop < BACKDROPS.length ? o.backdrop : 0, sound: o?.sound === true });
 
 const session = store.get("session", null);
 const state = {
   stats: session?.stats || null, route: session?.route || null, sport: session?.sport || null,
-  background: null, backgroundUrl: null,
+  // a video background: background holds its first frame, video the clip for the export
+  background: null, backgroundUrl: null, video: null,
   overlay: cleanOverlay(store.get("overlay", null)),
   looks: { presets: [], history: [], ...store.get("looks", {}) },
   style: STYLES[store.get("style", "OVERLAY")] ? store.get("style", "OVERLAY") : "OVERLAY",
@@ -124,15 +125,35 @@ function setBusy(on) {
 function showError(msg) { if (workout()) toast(msg); else { $("error").textContent = msg; $("error").hidden = false; } }
 
 function setBackground(file) {
-  if (state.backgroundUrl) URL.revokeObjectURL(state.backgroundUrl);
-  state.background = null; state.backgroundUrl = null;
+  if (state.backgroundUrl?.startsWith("blob:")) URL.revokeObjectURL(state.backgroundUrl);
+  if (state.video) { state.video.pause(); URL.revokeObjectURL(state.video.src); }
+  state.background = null; state.backgroundUrl = null; state.video = null;
   if (!file) return;
   const url = URL.createObjectURL(file);
+  // show: photo tile + "Photo" tab depend on it
+  const loaded = (bg, shownUrl, video = null) => { state.background = bg; state.backgroundUrl = shownUrl; state.video = video; state.section = "PHOTO"; show(); };
+  const failed = () => { URL.revokeObjectURL(url); toast(tr("Foto oder Video konnte nicht geladen werden.", "Couldn't load the photo or video.")); };
+  if (file.type.startsWith("video/")) {
+    // the editor works on the first frame, the export plays the whole clip
+    const v = document.createElement("video");
+    v.muted = true; v.playsInline = true; v.preload = "auto";
+    v.onloadeddata = () => {
+      v.onloadeddata = null;
+      const cv = document.createElement("canvas"); cv.width = v.videoWidth; cv.height = v.videoHeight;
+      cv.getContext("2d").drawImage(v, 0, 0);
+      loaded(cv, cv.toDataURL("image/jpeg", 0.85), v);
+    };
+    v.onerror = failed;
+    v.src = url; v.load();
+    return;
+  }
   const img = new Image();
-  img.onload = () => { state.background = img; state.backgroundUrl = url; state.section = "PHOTO"; show(); }; // show: photo tile + "Photo" tab depend on it
-  img.onerror = () => { URL.revokeObjectURL(url); toast(tr("Foto konnte nicht geladen werden.", "Couldn't load the photo.")); };
+  img.onload = () => loaded(img, url);
+  img.onerror = failed;
   img.src = url;
 }
+
+const videoStory = () => state.style === "OVERLAY" && state.overlay.withPhoto && !!state.video;
 
 // ------------------------------------------------------------------ editor UI
 
@@ -211,7 +232,14 @@ function controls(w) {
   } else if (sec === "PHOTO") {
     // every option here only works with the photo baked in, so picking one switches that on
     const on = o.withPhoto, bake = (patch) => () => setOverlay({ ...patch, withPhoto: true });
-    out.push(chip(tr("Foto ins PNG", "Photo in PNG"), on, () => setOverlay({ withPhoto: !on })));
+    const video = !!state.video, bg = state.background;
+    out.push(chip(video ? tr("Video ins MP4", "Video in MP4") : tr("Foto ins PNG", "Photo in PNG"), on, () => setOverlay({ withPhoto: !on })));
+    // only a picture that isn't 9:16 leaves room to fill
+    if (bg && needsBackdrop(bg.naturalWidth || bg.width, bg.naturalHeight || bg.height)) {
+      out.push(note(tr("FORMAT", "FORMAT")));
+      const dots = { 2: NAVY, 3: BURGUNDY, 5: "#0C0D0B" };
+      BACKDROP_LABELS.forEach(([de, en], i) => out.push(chip(tr(de, en), on && o.backdrop === i, bake({ backdrop: i }), { dot: dots[i] })));
+    }
     out.push(note(tr("POSITION", "POSITION")));
     for (const [i, de, en] of PLACES) out.push(chip(tr(de, en), on && o.place === i, bake({ place: i })));
     out.push(note(tr("GRÖSSE", "SIZE")));
@@ -220,7 +248,9 @@ function controls(w) {
     DIM_LABELS.forEach(([de, en], i) => out.push(chip(tr(de, en), on && o.dim === i, bake({ dim: i }))));
     // a gradient of nothing is invisible: turning it on with darken off picks "medium"
     out.push(chip(tr("Verlauf", "Gradient"), on && o.fade, bake({ fade: !(on && o.fade), dim: o.dim || 2 })));
-    out.push(chip(tr("Weich", "Blur"), on && o.soft, bake({ soft: !(on && o.soft) })));
+    // a video can't be blurred by an overlay; it comes out silent so Instagram music fits
+    if (!video) out.push(chip(tr("Weich", "Blur"), on && o.soft, bake({ soft: !(on && o.soft) })));
+    else out.push(chip(tr("Ton behalten", "Keep sound"), on && o.sound, bake({ sound: !(on && o.sound) })));
   } else {
     // full stories: format first (story or feed post), then the sport
     if (state.style !== "OVERLAY") for (const [k, [label]] of Object.entries(FORMATS)) out.push(chip(label, state.format === k, () => { state.format = k; store.set("format", k); show(); }));
@@ -248,14 +278,16 @@ function show() {
 
   const photo = $("photo"), route = $("route");
   photo.classList.toggle("on", !!state.background || !!state.backgroundUrl);
-  photo.querySelector("span").textContent = state.backgroundUrl ? tr("Gesetzt", "Set") : tr("Hintergrund wählen", "Pick a background");
+  photo.querySelector("span").textContent = state.video ? "Video" : state.backgroundUrl ? tr("Gesetzt", "Set") : tr("Hintergrund wählen", "Pick a background");
+  $("save").textContent = videoStory() ? tr("MP4 sichern", "Save MP4") : tr("PNG sichern", "Save PNG");
   photo.querySelector("i").textContent = state.backgroundUrl ? "✕" : "+";
   route.classList.toggle("on", !!state.route);
   route.querySelector("span").textContent = state.route
     ? `${D.formatDistance(state.route.distanceMeters).value} ${D.formatDistance(state.route.distanceMeters).unit.toLowerCase()} · ${D.formatInt(state.route.pointCount ?? 0)} ${tr("Pkt.", "pts")}`
     : ROUTE_HINT;
   route.querySelector("i").textContent = state.route ? "✕" : "+";
-  $("ed-hint").textContent = state.style === "OVERLAY" && state.overlay.withPhoto && state.background ? tr("Fertige Story 1080 × 1920 mit deinem Foto", "Finished 1080 × 1920 story with your photo")
+  $("ed-hint").textContent = videoStory() ? (state.overlay.sound ? tr("Fertige Story 1080 × 1920 mit deinem Video und Ton", "Finished 1080 × 1920 story with your video and sound") : tr("Fertige Story 1080 × 1920 mit deinem Video, ohne Ton", "Finished 1080 × 1920 story with your video, no sound"))
+    : state.style === "OVERLAY" && state.overlay.withPhoto && state.background ? tr("Fertige Story 1080 × 1920 mit deinem Foto", "Finished 1080 × 1920 story with your photo")
     : state.style === "OVERLAY" ? tr("Instagram: Story öffnen → Sticker → Foto → PNG wählen", "Instagram: open a story → Stickers → Photo → pick the PNG")
     : state.format === "FEED" ? tr("Fertiger Beitrag 1080 × 1350 für den Instagram-Feed", "Finished 1080 × 1350 post for the Instagram feed")
     : tr("Fertige Story 1080 × 1920, als Hintergrund in Instagram", "Finished 1080 × 1920 story, use it as the Instagram background");
@@ -290,6 +322,69 @@ async function pngFile() {
   return new File([exportBlob], `fitshare-${state.style.toLowerCase()}-${day}.png`, { type: "image/png" });
 }
 
+/** The clip's sound as a recordable track; an element can only be wired into Web Audio once. */
+function soundOf(v) {
+  if (!v._sound) {
+    const ac = new AudioContext(), dest = ac.createMediaStreamDestination();
+    ac.createMediaElementSource(v).connect(dest);
+    v._sound = { ac, track: dest.stream.getAudioTracks()[0] };
+  }
+  v._sound.ac.resume();
+  return v._sound.track;
+}
+
+/**
+ * Plays the clip once onto a 1080×1920 canvas with the overlay on top and records that: MP4 where the browser
+ * can, else WebM. A canvas stream carries no sound, so the video is silent unless "keep sound" adds the clip's track.
+ * shortcut: runs in real time and needs the tab in front (hidden tabs pause drawing); WebCodecs would be faster.
+ */
+async function videoFile() {
+  const v = state.video, o = state.overlay;
+  // AAC sound first: Instagram takes it more reliably than Opus
+  const type = ["video/mp4;codecs=avc1,mp4a.40.2", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find((t) => window.MediaRecorder?.isTypeSupported(t));
+  if (!type) throw new Error(NO_RECORDER);
+  const top = render(workout(), "OVERLAY", state.background, o, "STORY", 1, true);
+  const cv = document.createElement("canvas"); cv.width = 1080; cv.height = 1920;
+  const c = cv.getContext("2d");
+  const stream = cv.captureStream(30);
+  v.muted = !o.sound;
+  if (o.sound) stream.addTrack(soundOf(v));
+  const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 8_000_000 });
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  const stopped = new Promise((r) => { rec.onstop = r; });
+  const paint = () => { c.clearRect(0, 0, 1080, 1920); drawMedia(c, v, o.backdrop, 1920, false); c.drawImage(top, 0, 0); };
+  v.pause();
+  if (v.currentTime !== 0) await new Promise((r) => { v.onseeked = () => { v.onseeked = null; r(); }; v.currentTime = 0; });
+  paint(); rec.start(250);
+  try {
+    await v.play();
+    await new Promise((done) => {
+      const tick = () => {
+        paint();
+        $("ed-hint").textContent = tr("Video wird erstellt … ", "Making the video … ") + Math.round((v.currentTime / (v.duration || 1)) * 100) + " %";
+        if (v.ended || v.paused) done(); else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  } finally {
+    rec.stop(); await stopped;
+    v.muted = true; v.pause();
+    show();
+  }
+  const day = new Date().toISOString().slice(0, 10), mp4 = type.startsWith("video/mp4");
+  return new File(chunks, `fitshare-video-${day}.${mp4 ? "mp4" : "webm"}`, { type: mp4 ? "video/mp4" : "video/webm" });
+}
+
+const NO_RECORDER = tr("Dieser Browser kann keine Videos aufnehmen.", "This browser can't record video.");
+let recording = false;
+async function storyFile() {
+  if (!videoStory()) return pngFile();
+  if (recording) throw new Error("busy");
+  recording = true;
+  try { return await videoFile(); } finally { recording = false; }
+}
+
 function download(file) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(file); a.download = file.name;
@@ -299,18 +394,26 @@ function download(file) {
 
 $("save").onclick = async () => {
   try {
-    const f = await pngFile();
+    const f = await storyFile();
     download(f);
     if (state.style === "OVERLAY") rememberLook();
-    toast(/iPhone|iPad/.test(navigator.userAgent) ? tr("Tipp: „Teilen“ → „Bild sichern“ legt es in Fotos ab", "Tip: “Share” → “Save Image” puts it in Photos") : tr("PNG gesichert", "PNG saved"));
-  } catch { toast(tr("Sichern hat nicht geklappt", "Saving failed")); }
+    const saved = f.type.startsWith("video/") ? tr("Video gesichert", "Video saved") : tr("PNG gesichert", "PNG saved");
+    toast(/iPhone|iPad/.test(navigator.userAgent) ? tr("Tipp: „Teilen“ → „Sichern“ legt es in Fotos ab", "Tip: “Share” → “Save” puts it in Photos") : saved);
+  } catch (e) { if (e?.message !== "busy") toast(e?.message === NO_RECORDER ? NO_RECORDER : tr("Sichern hat nicht geklappt", "Saving failed")); }
 };
 $("share").onclick = async () => {
   try {
-    const f = await pngFile();
-    if (navigator.canShare?.({ files: [f] })) { await navigator.share({ files: [f] }); if (state.style === "OVERLAY") rememberLook(); }
-    else { download(f); toast(tr("Teilen geht in diesem Browser nicht, PNG wurde gesichert", "This browser can't share files, the PNG was saved instead")); }
-  } catch (e) { if (e?.name !== "AbortError") toast(tr("Teilen fehlgeschlagen", "Sharing failed")); }
+    const f = await storyFile();
+    try {
+      if (!navigator.canShare?.({ files: [f] })) throw new Error("no share");
+      await navigator.share({ files: [f] });
+      if (state.style === "OVERLAY") rememberLook();
+    } catch (e) {
+      if (e?.name === "AbortError") return;
+      // also after a long video recording: browsers only open the share sheet right after a tap
+      download(f); toast(tr("Teilen ging nicht, die Datei wurde gesichert", "Couldn't share, the file was saved instead"));
+    }
+  } catch (e) { if (e?.message !== "busy") toast(e?.message === NO_RECORDER ? NO_RECORDER : tr("Teilen fehlgeschlagen", "Sharing failed")); }
 };
 
 $("name-dialog").addEventListener("close", () => {

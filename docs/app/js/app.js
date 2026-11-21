@@ -196,6 +196,8 @@ function rememberLook() {
 function controls(w) {
   const o = state.overlay, accent = D.SPORTS[w.sport].accent, sec = state.style === "OVERLAY" ? state.section : "SPORT";
   const out = [];
+  // photo/video options only work with it baked into the story, so picking one switches that on
+  const bg = state.background, video = !!state.video, baked = o.withPhoto, bake = (patch) => () => setOverlay({ ...patch, withPhoto: true });
   if (sec === "LOOKS") {
     out.push(chip(tr("+ Speichern", "+ Save"), false, () => { $("look-name").value = ""; $("name-dialog").showModal(); }));
     for (const l of state.looks.presets) out.push(chip(l.name, sameOptions(o, l.options), () => setOverlay(l.options), {
@@ -205,6 +207,13 @@ function controls(w) {
     if (!state.looks.presets.length && !state.looks.history.length) out.push(note(tr("Gesicherte PNGs landen hier im Verlauf", "Every saved PNG shows up here")));
   } else if (sec === "LAYOUT") {
     for (const [k, [, de, en]] of Object.entries(LAYOUTS)) out.push(chip(tr(de, en), o.layout === k, () => setOverlay({ layout: k })));
+    // where the numbers sit on your photo or video is layout too
+    if (bg) {
+      out.push(note(tr("POSITION", "POSITION")));
+      for (const [i, de, en] of PLACES) out.push(chip(tr(de, en), baked && o.place === i, bake({ place: i })));
+      out.push(note(tr("GRÖSSE", "SIZE")));
+      for (const [i, l] of SIZE_CHIPS) out.push(chip(l, baked && o.size === i, bake({ size: i })));
+    }
   } else if (sec === "STATS") {
     const max = LAYOUTS[o.layout][0];
     const shown = D.pickStats(w, o.stats ?? D.pickStats(w, null, max).map((x) => x.key), max).map((x) => x.key);
@@ -219,6 +228,12 @@ function controls(w) {
     // black ink needs a lighter, not a darker, background
     out.push(note(o.ink === "BLACK" ? tr("AUFHELLEN", "LIGHTEN") : tr("ABDUNKELN", "DARKEN")));
     DIM_LABELS.forEach(([de, en], i) => out.push(chip(tr(de, en), o.dim === i, () => setOverlay({ dim: i }))));
+    if (bg) {
+      // a gradient of nothing is invisible: turning it on with darken off picks "medium"
+      out.push(chip(tr("Verlauf", "Gradient"), baked && o.fade, bake({ fade: !(baked && o.fade), dim: o.dim || 2 })));
+      // a video can't be blurred by an overlay
+      if (!video) out.push(chip(tr("Weich", "Blur"), baked && o.soft, bake({ soft: !(baked && o.soft) })));
+    }
   } else if (sec === "EXTRAS") {
     const r = w.route, toggle = (key) => () => setOverlay({ [key]: !o[key] });
     if (r) out.push(chip("Route", o.showRoute, toggle("showRoute")));
@@ -230,27 +245,17 @@ function controls(w) {
     out.push(chip("Logo", o.showBrand, toggle("showBrand")));
     if (!r) out.push(note(tr("Karte, Höhenprofil, Splits: GPX/TCX dazunehmen", "Map, elevation, splits: add a GPX/TCX")));
   } else if (sec === "PHOTO") {
-    // every option here only works with the photo baked in, so picking one switches that on
-    const on = o.withPhoto, bake = (patch) => () => setOverlay({ ...patch, withPhoto: true });
-    const video = !!state.video, bg = state.background;
+    // only what the background itself does; placement sits in Layout, darken/gradient/blur in Colour
+    const on = baked;
     out.push(chip(video ? tr("Video ins MP4", "Video in MP4") : tr("Foto ins PNG", "Photo in PNG"), on, () => setOverlay({ withPhoto: !on })));
+    // a video comes out silent so Instagram music fits
+    if (video) out.push(chip(tr("Ton behalten", "Keep sound"), on && o.sound, bake({ sound: !(on && o.sound) })));
     // only a picture that isn't 9:16 leaves room to fill
     if (bg && needsBackdrop(bg.naturalWidth || bg.width, bg.naturalHeight || bg.height)) {
       out.push(note(tr("FORMAT", "FORMAT")));
       const dots = { 2: NAVY, 3: BURGUNDY, 5: "#0C0D0B" };
       BACKDROP_LABELS.forEach(([de, en], i) => out.push(chip(tr(de, en), on && o.backdrop === i, bake({ backdrop: i }), { dot: dots[i] })));
     }
-    out.push(note(tr("POSITION", "POSITION")));
-    for (const [i, de, en] of PLACES) out.push(chip(tr(de, en), on && o.place === i, bake({ place: i })));
-    out.push(note(tr("GRÖSSE", "SIZE")));
-    for (const [i, l] of SIZE_CHIPS) out.push(chip(l, on && o.size === i, bake({ size: i })));
-    out.push(note(o.ink === "BLACK" ? tr("AUFHELLEN", "LIGHTEN") : tr("ABDUNKELN", "DARKEN")));
-    DIM_LABELS.forEach(([de, en], i) => out.push(chip(tr(de, en), on && o.dim === i, bake({ dim: i }))));
-    // a gradient of nothing is invisible: turning it on with darken off picks "medium"
-    out.push(chip(tr("Verlauf", "Gradient"), on && o.fade, bake({ fade: !(on && o.fade), dim: o.dim || 2 })));
-    // a video can't be blurred by an overlay; it comes out silent so Instagram music fits
-    if (!video) out.push(chip(tr("Weich", "Blur"), on && o.soft, bake({ soft: !(on && o.soft) })));
-    else out.push(chip(tr("Ton behalten", "Keep sound"), on && o.sound, bake({ sound: !(on && o.sound) })));
   } else {
     // full stories: format first (story or feed post), then the sport
     if (state.style !== "OVERLAY") for (const [k, [label]] of Object.entries(FORMATS)) out.push(chip(label, state.format === k, () => { state.format = k; store.set("format", k); show(); }));

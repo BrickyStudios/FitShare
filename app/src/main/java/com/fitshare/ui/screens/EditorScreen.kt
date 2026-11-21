@@ -263,6 +263,9 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             TabRow(sections.map { it.label }, sections.indexOf(activeSection), accent, small = true) { section = sections[it] }
             Spacer(Modifier.height(6.dp))
         }
+        // photo/video options only work with it baked into the story, so picking one switches that on
+        fun bake(f: (OverlayOptions) -> OverlayOptions) = vm.updateOverlay { f(it).copy(withPhoto = true) }
+        val hasBackground = state.background != null
         AnimatedContent(activeSection, label = "controls") { sec ->
             ChipRow {
                 when (sec) {
@@ -279,8 +282,17 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         if (looks.presets.isEmpty() && looks.history.isEmpty()) Hint(tr("Gespeicherte PNGs landen hier im Verlauf", "Every saved PNG shows up here"))
                         else if (looks.presets.isNotEmpty()) Hint(tr("Lange drücken löscht", "Long-press to delete"))
                     }
-                    Section.LAYOUT -> OverlayLayout.entries.forEach { l ->
-                        Chip(l.label, overlay.layout == l, accent) { vm.updateOverlay { it.copy(layout = l) } }
+                    Section.LAYOUT -> {
+                        OverlayLayout.entries.forEach { l ->
+                            Chip(l.label, overlay.layout == l, accent) { vm.updateOverlay { it.copy(layout = l) } }
+                        }
+                        // where the numbers sit on your photo or video is layout too
+                        if (hasBackground) {
+                            Hint(tr("POSITION", "POSITION"))
+                            PLACE_ORDER.forEach { i -> Chip(placeLabel(i), overlay.withPhoto && overlay.place == i, accent) { bake { it.copy(place = i) } } }
+                            Hint(tr("GRÖSSE", "SIZE"))
+                            SIZE_ORDER.forEach { i -> Chip(sizeLabel(i), overlay.withPhoto && overlay.size == i, accent) { bake { it.copy(size = i) } } }
+                        }
                     }
                     Section.STATS -> {
                         val max = overlay.layout.maxStats
@@ -305,6 +317,14 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         DIM_LEVELS.indices.forEach { i ->
                             Chip(dimLabel(i), overlay.dim == i, accent) { vm.updateOverlay { it.copy(dim = i) } }
                         }
+                        if (hasBackground) {
+                            // a gradient of nothing is invisible: turning it on with darken off picks "medium"
+                            Chip(tr("Verlauf", "Gradient"), overlay.withPhoto && overlay.fade, accent) {
+                                bake { it.copy(fade = !(it.withPhoto && it.fade), dim = if (it.dim == 0) 2 else it.dim) }
+                            }
+                            // a video can't be blurred by an overlay
+                            if (!isVideo) Chip(tr("Weich", "Blur"), overlay.withPhoto && overlay.soft, accent) { bake { it.copy(soft = !(it.withPhoto && it.soft)) } }
+                        }
                     }
                     Section.EXTRAS -> {
                         val r = workout.route
@@ -317,9 +337,10 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         Chip("Logo", overlay.showBrand, accent) { vm.updateOverlay { it.copy(showBrand = !it.showBrand) } }
                     }
                     Section.PHOTO -> {
-                        // every option here only works with the photo baked in, so picking one switches that on
-                        fun bake(f: (OverlayOptions) -> OverlayOptions) = vm.updateOverlay { f(it).copy(withPhoto = true) }
+                        // only what the background itself does; placement sits in Layout, darken/gradient/blur in Colour
                         Chip(if (isVideo) tr("Video ins MP4", "Video in MP4") else tr("Foto ins PNG", "Photo in PNG"), overlay.withPhoto, accent) { vm.updateOverlay { it.copy(withPhoto = !it.withPhoto) } }
+                        // silent by default: Instagram music goes on top
+                        if (isVideo) Chip(tr("Ton behalten", "Keep sound"), overlay.withPhoto && overlay.sound, accent) { bake { it.copy(sound = !(it.withPhoto && it.sound)) } }
                         // only a picture that isn't 9:16 leaves room to fill
                         val bg = background
                         if (bg != null && needsBackdrop(bg.width, bg.height)) {
@@ -329,20 +350,6 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                                 Chip(backdropLabel(i), overlay.withPhoto && overlay.backdrop == i, accent, dot = dot) { bake { it.copy(backdrop = i) } }
                             }
                         }
-                        Hint(tr("POSITION", "POSITION"))
-                        PLACE_ORDER.forEach { i -> Chip(placeLabel(i), overlay.withPhoto && overlay.place == i, accent) { bake { it.copy(place = i) } } }
-                        Hint(tr("GRÖSSE", "SIZE"))
-                        SIZE_ORDER.forEach { i -> Chip(sizeLabel(i), overlay.withPhoto && overlay.size == i, accent) { bake { it.copy(size = i) } } }
-                        Hint(if (overlay.ink == InkColor.BLACK) tr("AUFHELLEN", "LIGHTEN") else tr("ABDUNKELN", "DARKEN"))
-                        DIM_LEVELS.indices.forEach { i -> Chip(dimLabel(i), overlay.withPhoto && overlay.dim == i, accent) { bake { it.copy(dim = i) } } }
-                        // a gradient of nothing is invisible: turning it on with darken off picks "medium"
-                        Chip(tr("Verlauf", "Gradient"), overlay.withPhoto && overlay.fade, accent) {
-                            bake { it.copy(fade = !(it.withPhoto && it.fade), dim = if (it.dim == 0) 2 else it.dim) }
-                        }
-                        // a video can't be blurred by an overlay
-                        if (!isVideo) Chip(tr("Weich", "Blur"), overlay.withPhoto && overlay.soft, accent) { bake { it.copy(soft = !(it.withPhoto && it.soft)) } }
-                        // silent by default: Instagram music goes on top
-                        if (isVideo) Chip(tr("Ton behalten", "Keep sound"), overlay.withPhoto && overlay.sound, accent) { bake { it.copy(sound = !(it.withPhoto && it.sound)) } }
                     }
                     Section.SPORT -> {
                         // full stories: format first (story or feed post), then the sport

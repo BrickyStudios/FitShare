@@ -150,6 +150,14 @@ class ParsingTest {
         assertEquals(1000, RouteParser.build(listOf(track(List(100) { 8.0 to 10 })))!!.movingSeconds)
     }
 
+    @Test fun gpsAltitudeJitterIsNotClimbing() {
+        // 10 km flat with ±4 m GPS jitter, then a real 100 m climb over 2 km
+        val flat = List(1000) { i -> RouteParser.Pt(48.3 + i * 10 / 111_195.0, 9.9, 100.0 + if (i % 2 == 0) 4.0 else -4.0, null) }
+        val climb = List(200) { i -> RouteParser.Pt(48.3 + (10_000 + i * 10) / 111_195.0, 9.9, 100.0 + i * 0.5, null) }
+        val r = RouteParser.build(listOf(flat + climb))!!
+        assertTrue("${r.elevationGainMeters}", r.elevationGainMeters in 85.0..105.0) // raw with a 3 m step: over 4000 hm
+    }
+
     @Test fun movingTimeReplacesTimeOnlyIfTheWatchNeverPaused() {
         val route = Route(listOf(listOf(LatLon(0.0, 0.0), LatLon(0.0, 0.1))), 64_400.0, 0.0, null, 9030)
         val mi = WorkoutStats(activeSeconds = 9663, stopsIncluded = true)

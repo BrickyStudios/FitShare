@@ -119,6 +119,14 @@ test("standing still is not moving time", () => {
   assert.equal(D.buildRoute([track(rep(100, [8, 10]))]).movingSeconds, 1000); // on foot a steep climb still counts
 });
 
+test("gps altitude jitter is not climbing", () => {
+  // 10 km flat with ±4 m GPS jitter, then a real 100 m climb over 2 km
+  const flat = Array.from({ length: 1000 }, (_, i) => ({ lat: 48.3 + (i * 10) / 111195, lon: 9.9, ele: 100 + (i % 2 ? -4 : 4), time: null }));
+  const climb = Array.from({ length: 200 }, (_, i) => ({ lat: 48.3 + (10000 + i * 10) / 111195, lon: 9.9, ele: 100 + i * 0.5, time: null }));
+  const g = D.buildRoute([[...flat, ...climb]]).elevationGainMeters;
+  assert.ok(g >= 85 && g <= 105, String(g)); // raw with a 3 m step: over 4000 hm
+});
+
 test("moving time replaces time only if the watch never paused", () => {
   const route = { segments: [[{ lat: 0, lon: 0 }, { lat: 0, lon: 0.1 }]], distanceMeters: 64400, elevationGainMeters: 0, startMillis: null, movingSeconds: 9030, profile: [], splitSeconds: [] };
   const mi = { ...D.emptyStats(), activeSeconds: 9663, stopsIncluded: true };

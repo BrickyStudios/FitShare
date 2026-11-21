@@ -211,6 +211,19 @@ function elevationProfile(segments, samples = 120) {
   });
 }
 
+/** Altitude averaged over ±radius m of track: irons out GPS jitter, keeps real climbs (Komoot routes match within ~10 %). */
+export function smoothedElevation(seg, radius = 200) {
+  const d = [], e = [];
+  let dist = 0;
+  seg.forEach((p, i) => { if (i > 0) dist += haversine(seg[i - 1], p); if (p.ele != null) { d.push(dist); e.push(p.ele); } });
+  let lo = 0, hi = 0, sum = 0;
+  return e.map((_, i) => {
+    while (hi < e.length && d[hi] <= d[i] + radius) sum += e[hi++];
+    while (d[lo] < d[i] - radius) sum -= e[lo++];
+    return sum / (hi - lo);
+  });
+}
+
 export function buildRoute(segments) {
   if (segments.reduce((n, s) => n + s.length, 0) < 2) return null;
   let distance = 0, gain = 0, span = 0;
@@ -218,12 +231,12 @@ export function buildRoute(segments) {
     for (let i = 1; i < seg.length; i++) distance += haversine(seg[i - 1], seg[i]);
     const times = seg.map((p) => p.time).filter((t) => t != null);
     if (times.length >= 2) span += times[times.length - 1] - times[0];
-    // GPS altitude is noisy: only count climbs once they exceed 3 m above the last low point
+    // Phone GPS altitude jitters by metres from second to second; summed raw, a flat 64 km ride came out
+    // at 849 hm instead of ~210. Average over ±200 m of track, then count rises of 5 m above the last low.
     let anchor = null;
-    for (const p of seg) {
-      if (p.ele == null) continue;
-      if (anchor == null || p.ele < anchor) anchor = p.ele;
-      else if (p.ele - anchor >= 3) { gain += p.ele - anchor; anchor = p.ele; }
+    for (const e of smoothedElevation(seg)) {
+      if (anchor == null || e < anchor) anchor = e;
+      else if (e - anchor >= 5) { gain += e - anchor; anchor = e; }
     }
   }
   // Standing still isn't moving time: at a red light the GPS creeps along at well under 1 m/s.

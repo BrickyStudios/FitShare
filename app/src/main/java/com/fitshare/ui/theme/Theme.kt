@@ -64,12 +64,12 @@ fun FitShareTheme(content: @Composable () -> Unit) {
     Type = remember {
         val display = FontFamily(Fonts.display(ctx, 900))
         FitType(
-            // large type: tight leading, negative tracking; small labels: open tracking
+            // signage (hero, step numerals) stays loud; the interface around it is sentence case at 450 to 600
             hero = TextStyle(fontFamily = display, fontSize = 84.sp, lineHeight = 76.sp, letterSpacing = (-0.01).em, color = Bone),
             title = TextStyle(fontFamily = FontFamily(Fonts.display(ctx, 800)), fontSize = 26.sp, lineHeight = 28.sp, color = Bone),
-            label = TextStyle(fontFamily = FontFamily(Fonts.text(ctx, 700)), fontSize = 11.sp, letterSpacing = 0.18.em, color = Muted),
-            body = TextStyle(fontFamily = FontFamily(Fonts.text(ctx, 450)), fontSize = 15.sp, lineHeight = 22.sp, color = Muted),
-            button = TextStyle(fontFamily = FontFamily(Fonts.text(ctx, 700)), fontSize = 16.sp, letterSpacing = 0.02.em)
+            label = TextStyle(fontFamily = FontFamily(Fonts.text(ctx, 500)), fontSize = 13.sp, lineHeight = 18.sp, color = Muted, fontFeatureSettings = "tnum"),
+            body = TextStyle(fontFamily = FontFamily(Fonts.text(ctx, 450)), fontSize = 15.sp, lineHeight = 22.sp, color = Muted, fontFeatureSettings = "tnum"),
+            button = TextStyle(fontFamily = FontFamily(Fonts.text(ctx, 600)), fontSize = 16.sp, fontFeatureSettings = "tnum")
         )
     }
     MaterialTheme(
@@ -85,7 +85,7 @@ fun FitShareTheme(content: @Composable () -> Unit) {
 @Composable
 private fun pressScale(source: MutableInteractionSource): Float {
     val pressed by source.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, uiSpring(), label = "press")
+    val scale by animateFloatAsState(if (pressed) 0.97f else 1f, uiSpring(), label = "press")
     return scale
 }
 
@@ -115,7 +115,7 @@ fun BigButton(
             .fillMaxWidth()
             .heightIn(min = 60.dp)
             .pressable(enabled = !busy, onClick = onClick)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(bg),
         contentAlignment = Alignment.Center
     ) {

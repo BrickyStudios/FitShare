@@ -58,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
@@ -72,6 +73,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.fitshare.data.Look
 import com.fitshare.data.Sport
@@ -217,7 +219,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         HorizontalPager(
             state = pager,
             contentPadding = PaddingValues(horizontal = 52.dp),
-            pageSpacing = 10.dp,
+            pageSpacing = 12.dp,
             modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 8.dp)
         ) { page ->
             val pageStyle = StoryStyle.entries[page]
@@ -237,7 +239,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                             scaleX = s; scaleY = s
                             alpha = 1f - 0.45f * off
                         }
-                        .clip(RoundedCornerShape(22.dp))
+                        .clip(RoundedCornerShape(24.dp))
                         .then(if (isOverlay) Modifier.checkerboard(light = overlay.ink == InkColor.BLACK) else Modifier.background(Raised))
                         .semantics { contentDescription = tr("Vorschau Stil ", "Preview style ") + pageStyle.label },
                     contentAlignment = Alignment.Center
@@ -249,7 +251,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                     Crossfade(preview, label = "preview") { bmp ->
                         if (bmp != null) Image(
                             bmp.asImageBitmap(), null,
-                            Modifier.fillMaxSize().padding(if (isOverlay && !baked) 18.dp else 0.dp),
+                            Modifier.fillMaxSize().padding(if (isOverlay && !baked) 16.dp else 0.dp),
                             contentScale = ContentScale.Fit
                         )
                     }
@@ -262,14 +264,14 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
             scope.launch { pager.animateScrollToPage(i, animationSpec = uiSpring()) }
         }
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
 
         // overlay: sectioned controls like a photo editor; full stories: just the sport. "Photo" only once there is one.
         val sections = Section.entries.filter { it != Section.PHOTO || state.background != null }
         val activeSection = if (style != StoryStyle.OVERLAY) Section.SPORT else if (section in sections) section else Section.LAYOUT
         if (style == StoryStyle.OVERLAY) {
             TabRow(sections.map { it.label }, sections.indexOf(activeSection), accent, small = true) { section = sections[it] }
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
         }
         // photo/video options only work with it baked into the story, so picking one switches that on
         fun bake(f: (OverlayOptions) -> OverlayOptions) = vm.updateOverlay { f(it).copy(withPhoto = true) }
@@ -296,9 +298,9 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         }
                         // where the numbers sit on your photo or video is layout too
                         if (hasBackground) {
-                            Hint(tr("POSITION", "POSITION"))
+                            Hint("Position")
                             PLACE_ORDER.forEach { i -> Chip(placeLabel(i), overlay.withPhoto && overlay.place == i, accent) { bake { it.copy(place = i) } } }
-                            Hint(tr("GRÖSSE", "SIZE"))
+                            Hint(tr("Größe", "Size"))
                             SIZE_ORDER.forEach { i -> Chip(sizeLabel(i), overlay.withPhoto && overlay.size == i, accent) { bake { it.copy(size = i) } } }
                         }
                     }
@@ -323,7 +325,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                             Chip(ink.label, overlay.ink == ink, accent, dot = dot) { vm.updateOverlay { it.copy(ink = ink) } }
                         }
                         // black ink needs a lighter, not a darker, background
-                        Hint(if (overlay.ink == InkColor.BLACK) tr("AUFHELLEN", "LIGHTEN") else tr("ABDUNKELN", "DARKEN"))
+                        Hint(if (overlay.ink == InkColor.BLACK) tr("Aufhellen", "Lighten") else tr("Abdunkeln", "Darken"))
                         DIM_LEVELS.indices.forEach { i ->
                             Chip(dimLabel(i), overlay.dim == i, accent) { vm.updateOverlay { it.copy(dim = i) } }
                         }
@@ -354,7 +356,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                         // only a picture that isn't 9:16 leaves room to fill
                         val bg = background
                         if (bg != null && needsBackdrop(bg.width, bg.height)) {
-                            Hint(tr("FORMAT", "FORMAT"))
+                            Hint("Format")
                             BACKDROPS.indices.forEach { i ->
                                 val dot = when (i) { 2 -> Color(NAVY); 3 -> Color(BURGUNDY); 5 -> Color(0xFF0C0D0B); else -> null }
                                 Chip(backdropLabel(i), overlay.withPhoto && overlay.backdrop == i, accent, dot = dot) { bake { it.copy(backdrop = i) } }
@@ -380,7 +382,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
         Spacer(Modifier.height(12.dp))
 
         // tools
-        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ToolTile(
                 title = tr("Foto · Video", "Photo · Video"),
                 // short enough for a half-width tile; the title already says what it is
@@ -406,7 +408,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
 
         Spacer(Modifier.height(12.dp))
 
-        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(
                 Modifier
                     .weight(0.38f)
@@ -424,7 +426,7 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                             }
                         }
                     }
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Raised2)
                     .heightIn(min = 60.dp),
                 contentAlignment = Alignment.Center
@@ -450,8 +452,9 @@ fun EditorScreen(state: UiState, vm: WorkoutViewModel) {
                 format == StoryFormat.FEED -> tr("Fertiger Beitrag 1080 × 1350 für den Instagram-Feed", "Finished 1080 × 1350 post for the Instagram feed")
                 else -> tr("Fertige Story 1080 × 1920, als Hintergrund in Instagram", "Finished 1080 × 1920 story, use it as the Instagram background")
             },
-            style = Type.body.copy(fontSize = Type.label.fontSize * 1.1f),
-            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
+            style = Type.label,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 8.dp)
         )
     }
 }
@@ -470,17 +473,17 @@ private fun TabRow(labels: List<String>, selectedIndex: Int, accent: Color, smal
         Row(Modifier.fadeEnd(scroll).horizontalScroll(scroll).widthIn(min = maxWidth), horizontalArrangement = Arrangement.Center) {
             labels.forEachIndexed { i, text ->
                 val selected = selectedIndex == i
-                val color by animateColorAsState(if (selected) Bone else Muted.copy(alpha = 0.45f), uiSpring(), label = "tab")
+                val color by animateColorAsState(if (selected) Bone else Muted, uiSpring(), label = "tab")
                 Column(
                     Modifier
                         .pressable { onSelect(i) }
                         .heightIn(min = if (small) 36.dp else 44.dp)
-                        .padding(horizontal = if (small) 6.dp else 14.dp, vertical = 6.dp),
+                        .padding(horizontal = if (small) 8.dp else 16.dp, vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(text.uppercase(), style = Type.label.copy(color = color, fontSize = if (small) Type.label.fontSize * 0.95f else Type.label.fontSize), maxLines = 1, softWrap = false)
-                    Spacer(Modifier.height(5.dp))
-                    Box(Modifier.size(if (small) 4.dp else 5.dp).clip(CircleShape).background(if (selected) accent else Color.Transparent))
+                    Text(text, style = Type.label.copy(color = color, fontSize = if (small) Type.label.fontSize else Type.body.fontSize), maxLines = 1, softWrap = false)
+                    Spacer(Modifier.height(4.dp))
+                    Box(Modifier.size(if (small) 4.dp else 6.dp).clip(CircleShape).background(if (selected) accent else Color.Transparent))
                 }
             }
         }
@@ -504,7 +507,7 @@ private fun lookLabel(look: Look): String {
 @Composable
 private fun Hint(text: String) {
     Box(Modifier.heightIn(min = 44.dp), contentAlignment = Alignment.Center) {
-        Text(text, style = Type.body.copy(fontSize = Type.label.fontSize * 1.1f), maxLines = 1)
+        Text(text, style = Type.label, maxLines = 1)
     }
 }
 
@@ -550,7 +553,7 @@ private fun Chip(
     ) {
         if (badge != null) {
             Box(Modifier.size(20.dp).clip(CircleShape).background(OnAccent), contentAlignment = Alignment.Center) {
-                Text(badge, style = Type.label.copy(color = selectedColor, letterSpacing = Type.body.letterSpacing))
+                Text(badge, style = Type.label.copy(fontSize = 12.sp, lineHeight = 16.sp, color = selectedColor))
             }
             Spacer(Modifier.width(8.dp))
         } else if (dot != null) {
@@ -559,14 +562,14 @@ private fun Chip(
             })
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, style = Type.button.copy(fontSize = Type.body.fontSize, color = fg))
+        Text(text, style = Type.label.copy(fontSize = Type.body.fontSize, lineHeight = 20.sp, color = fg))
     }
 }
 
 @Composable
 private fun TextAction(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
-        Modifier.pressable(enabled, onClick = onClick).heightIn(min = 44.dp).padding(horizontal = 10.dp),
+        Modifier.pressable(enabled, onClick = onClick).heightIn(min = 44.dp).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(text, style = Type.button.copy(color = if (enabled) Bone else Muted))
@@ -587,25 +590,22 @@ private fun ToolTile(
             .pressable(onClick = onClick)
             .clip(RoundedCornerShape(16.dp))
             .background(Raised)
-            .drawBehind { drawRect(Hairline, style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx())) }
+            .drawBehind { drawRoundRect(Hairline, cornerRadius = CornerRadius(16.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx())) }
             .heightIn(min = 64.dp)
-            .padding(start = 14.dp),
+            .padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(Modifier.weight(1f).padding(vertical = 10.dp)) {
-            Text(title.uppercase(), style = Type.label.copy(color = if (active) Bone else Muted))
+        Column(Modifier.weight(1f).padding(vertical = 12.dp)) {
+            Text(title, style = Type.label.copy(fontSize = Type.body.fontSize, lineHeight = 20.sp, color = if (active) Bone else Muted), maxLines = 1)
             Spacer(Modifier.height(4.dp))
-            Text(detail, style = Type.body.copy(fontSize = Type.label.fontSize * 1.2f), maxLines = 1)
+            Text(detail, style = Type.label, maxLines = 1)
         }
-        if (active) {
-            Box(
-                Modifier.pressable(onClick = onRemove).size(44.dp).semantics { contentDescription = tr("$title entfernen", "Remove $title") },
-                contentAlignment = Alignment.Center
-            ) {
-                Text("✕", style = Type.button.copy(color = Muted))
-            }
-        } else {
-            Text("+", style = Type.title.copy(color = Muted), modifier = Modifier.padding(end = 16.dp))
+        // + and ✕ share one 48 dp box, so both tiles keep their mark in the same column
+        Box(
+            Modifier.then(if (active) Modifier.pressable(onClick = onRemove).semantics { contentDescription = tr("$title entfernen", "Remove $title") } else Modifier).size(48.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(if (active) "✕" else "+", style = Type.body.copy(fontSize = 20.sp, color = Muted))
         }
     }
 }

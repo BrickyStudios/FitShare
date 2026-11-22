@@ -39,10 +39,10 @@ fun UpdateBar(state: UpdateState, onInstall: () -> Unit, onLater: () -> Unit, mo
     Row(
         modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(Raised2)
-            .drawBehind { drawRoundRect(Hairline, cornerRadius = CornerRadius(18.dp.toPx()), style = Stroke(1.dp.toPx())) }
-            .padding(start = 18.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+            .drawBehind { drawRoundRect(Hairline, cornerRadius = CornerRadius(16.dp.toPx()), style = Stroke(1.dp.toPx())) }
+            .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f).padding(vertical = 4.dp)) {
@@ -54,7 +54,7 @@ fun UpdateBar(state: UpdateState, onInstall: () -> Unit, onLater: () -> Unit, mo
                     firstTime -> tr("$mb · Android fragt einmal nach Erlaubnis", "$mb · Android asks for permission once")
                     else -> tr("Du hast ${BuildConfig.VERSION_NAME} · $mb", "You have ${BuildConfig.VERSION_NAME} · $mb")
                 },
-                style = Type.body.copy(fontSize = Type.label.fontSize * 1.1f, lineHeight = Type.label.fontSize * 1.5f, color = Muted),
+                style = Type.label,
                 maxLines = 2
             )
         }

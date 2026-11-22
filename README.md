@@ -107,7 +107,7 @@ The code is plain JavaScript in `docs/app`, a port of the Kotlin parser and rend
 5. Tap **Save PNG**. In Instagram, open a story, tap Stickers → Photo and pick the PNG.
 
 <p align="center">
-  <img src="docs/bilder/app-start.png" width="220" alt="FitShare start screen: a row of fitness apps with Mi Fitness picked, its three steps, and buttons to open Mi Fitness, pick a screenshot or a file, or see an example">
+  <img src="docs/bilder/app-start.png" width="220" alt="FitShare start screen: a row of fitness apps with Mi Fitness picked, its three steps, and buttons to pick a screenshot or a file, or see an example">
   <img src="docs/bilder/app-editor.png" width="220" alt="FitShare editor: overlay preview on a checkerboard, tabs for layout, stats, colour, extras and sport, Save PNG button">
 </p>
 

@@ -1,5 +1,5 @@
 // Offline cache + Android share target for the FitShare web app.
-const VERSION = "fs-14";
+const VERSION = "fs-15";
 const SHELL = ["./", "app.css", "js/app.js", "js/data.js", "js/render.js", "manifest.webmanifest", "icon-192.png", "../fonts/bigshoulders.ttf", "../fonts/archivo.ttf"];
 
 self.addEventListener("install", (e) => {

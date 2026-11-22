@@ -55,6 +55,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import com.fitshare.data.Source
 import com.fitshare.data.UiState
 import com.fitshare.data.WorkoutViewModel
@@ -62,7 +64,6 @@ import com.fitshare.data.tr
 import com.fitshare.ui.theme.BigButton
 import com.fitshare.ui.theme.Bone
 import com.fitshare.ui.theme.Hairline
-import com.fitshare.ui.theme.Muted
 import com.fitshare.ui.theme.OnAccent
 import com.fitshare.ui.theme.Raised2
 import com.fitshare.ui.theme.Type
@@ -104,8 +105,9 @@ fun ImportScreen(state: UiState, vm: WorkoutViewModel, updateNote: String?, onCh
             .padding(vertical = 16.dp)
     ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = Gutter).reveal(0), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("FITSHARE", style = Type.label.copy(color = Bone))
-            Text(tr("OFFLINE · OHNE KONTO", "OFFLINE · NO ACCOUNT"), style = Type.label)
+            // the wordmark matches the logo on the sticker itself
+            Text("FITSHARE", style = Type.button.copy(fontSize = 13.sp, letterSpacing = 0.18.em, color = Bone))
+            Text(tr("Offline · ohne Konto", "Offline · no account"), style = Type.label)
         }
         Spacer(Modifier.height(48.dp))
         Text(
@@ -127,8 +129,8 @@ fun ImportScreen(state: UiState, vm: WorkoutViewModel, updateNote: String?, onCh
         )
         Spacer(Modifier.height(32.dp))
 
-        Text(tr("DEINE APP", "YOUR APP"), style = Type.label, modifier = Modifier.padding(horizontal = Gutter).reveal(3))
-        Spacer(Modifier.height(10.dp))
+        Text(tr("Deine App", "Your app"), style = Type.label, modifier = Modifier.padding(horizontal = Gutter).reveal(3))
+        Spacer(Modifier.height(8.dp))
         val order = remember { Source.ordered(installed.keys) }
         val chips = rememberLazyListState()
         // the preselected chip may sit past the screen edge ("Other" is last)
@@ -173,9 +175,9 @@ fun ImportScreen(state: UiState, vm: WorkoutViewModel, updateNote: String?, onCh
                     style = Type.body.copy(color = Color(0xFFFF8A80)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(Color(0x22FF3D5A))
-                        .padding(14.dp)
+                        .padding(16.dp)
                 )
                 Spacer(Modifier.height(16.dp))
             }
@@ -183,9 +185,9 @@ fun ImportScreen(state: UiState, vm: WorkoutViewModel, updateNote: String?, onCh
                 BigButton(tr("${source.title} öffnen", "Open ${source.title}"), busy = state.loading) {
                     ctx.packageManager.getLaunchIntentForPackage(openPackage)?.let(ctx::startActivity)
                 }
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 // without an app to open, the screenshot is the main way in
                 val primary = openPackage == null
                 BigButton(
@@ -195,7 +197,7 @@ fun ImportScreen(state: UiState, vm: WorkoutViewModel, updateNote: String?, onCh
                 ) { pickScreenshot() }
                 BigButton(tr("Datei wählen", "Pick file"), Modifier.weight(1f), color = Raised2, contentColor = Bone) { files.launch(PICK_TYPES) }
             }
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Box(
                 Modifier.fillMaxWidth().heightIn(min = 48.dp).pressable { vm.openDemo() },
                 contentAlignment = Alignment.Center
@@ -207,14 +209,14 @@ fun ImportScreen(state: UiState, vm: WorkoutViewModel, updateNote: String?, onCh
                     "Werte und Route gehen auch zusammen in einem Rutsch. Menüs heißen je nach App-Version etwas anders.",
                     "You can pick the numbers and the route together. Menu names vary between app versions."
                 ),
-                style = Type.body.copy(fontSize = Type.label.fontSize * 1.15f, color = Muted),
+                style = Type.label,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
             )
             // which version runs here, and a tap asks GitHub right away
             Box(Modifier.fillMaxWidth().heightIn(min = 44.dp).pressable(onClick = onCheckUpdate), contentAlignment = Alignment.CenterStart) {
                 Text(
                     updateNote ?: tr("FitShare ${BuildConfig.VERSION_NAME} · nach Updates suchen", "FitShare ${BuildConfig.VERSION_NAME} · check for updates"),
-                    style = Type.body.copy(fontSize = Type.label.fontSize * 1.15f, color = Muted)
+                    style = Type.label
                 )
             }
         }
@@ -239,10 +241,10 @@ private fun SourceChip(text: String, selected: Boolean, installed: Boolean, onCl
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (installed) {
-            Box(Modifier.size(7.dp).clip(CircleShape).background(if (selected) OnAccent else Volt))
+            Box(Modifier.size(8.dp).clip(CircleShape).background(if (selected) OnAccent else Volt))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, style = Type.button.copy(fontSize = Type.body.fontSize, color = if (selected) OnAccent else Bone))
+        Text(text, style = Type.label.copy(fontSize = Type.body.fontSize, lineHeight = 20.sp, color = if (selected) OnAccent else Bone))
     }
 }
 
@@ -250,10 +252,10 @@ private fun SourceChip(text: String, selected: Boolean, installed: Boolean, onCl
 private fun Step(number: String, title: String, text: String) {
     Column {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Hairline))
-        Row(Modifier.padding(vertical = 14.dp)) {
+        Row(Modifier.padding(vertical = 16.dp)) {
             Text(number, style = Type.title.copy(color = Volt), modifier = Modifier.width(48.dp))
             Column {
-                Text(title.uppercase(), style = Type.label.copy(color = Bone))
+                Text(title, style = Type.label.copy(fontSize = Type.body.fontSize, lineHeight = 20.sp, color = Bone))
                 Spacer(Modifier.height(4.dp))
                 Text(text, style = Type.body)
             }
@@ -261,7 +263,7 @@ private fun Step(number: String, title: String, text: String) {
     }
 }
 
-/** Staggered entrance: fade + 24 dp rise, critically damped. */
+/** Staggered entrance: fade + 12 dp rise, critically damped. */
 @Composable
 private fun Modifier.reveal(index: Int): Modifier {
     val progress = remember { Animatable(0f) }
@@ -271,6 +273,6 @@ private fun Modifier.reveal(index: Int): Modifier {
     }
     return graphicsLayer {
         alpha = progress.value
-        translationY = (1f - progress.value) * 24.dp.toPx()
+        translationY = (1f - progress.value) * 12.dp.toPx()
     }
 }

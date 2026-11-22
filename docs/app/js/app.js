@@ -167,7 +167,7 @@ const SECTIONS = { LOOKS: ["Looks", "Looks"], LAYOUT: ["Layout", "Layout"], STAT
 function tabs(el, entries, selected, onPick) {
   el.replaceChildren(...Object.entries(entries).map(([k, [de, en]]) => {
     const b = document.createElement("button");
-    b.type = "button"; b.role = "tab"; b.textContent = tr(de, en).toUpperCase(); b.setAttribute("aria-selected", k === selected);
+    b.type = "button"; b.role = "tab"; b.textContent = tr(de, en); b.setAttribute("aria-selected", k === selected);
     b.onclick = () => onPick(k);
     return b;
   }));
@@ -216,14 +216,14 @@ function controls(w) {
       remove: () => { if (confirm(tr(`„${l.name}“ löschen?`, `Delete “${l.name}”?`))) { state.looks.presets = state.looks.presets.filter((x) => x !== l); store.set("looks", state.looks); show(); } },
     }));
     for (const l of state.looks.history) out.push(chip("↺ " + lookLabel(l), sameOptions(o, l.options), () => setOverlay(l.options)));
-    if (!state.looks.presets.length && !state.looks.history.length) out.push(note(tr("Gesicherte PNGs landen hier im Verlauf", "Every saved PNG shows up here")));
+    if (!state.looks.presets.length && !state.looks.history.length) out.push(note(tr("Gespeicherte PNGs landen hier im Verlauf", "Every saved PNG shows up here")));
   } else if (sec === "LAYOUT") {
     for (const [k, [, de, en]] of Object.entries(LAYOUTS)) out.push(chip(tr(de, en), o.layout === k, () => setOverlay({ layout: k })));
     // where the numbers sit on your photo or video is layout too
     if (bg) {
-      out.push(note(tr("POSITION", "POSITION")));
+      out.push(note("Position"));
       for (const [i, de, en] of PLACES) out.push(chip(tr(de, en), baked && o.place === i, bake({ place: i })));
-      out.push(note(tr("GRÖSSE", "SIZE")));
+      out.push(note(tr("Größe", "Size")));
       for (const [i, l] of SIZE_CHIPS) out.push(chip(l, baked && o.size === i, bake({ size: i })));
     }
   } else if (sec === "STATS") {
@@ -240,7 +240,7 @@ function controls(w) {
   } else if (sec === "COLOR") {
     for (const [k, [de, en]] of Object.entries(INKS)) out.push(chip(tr(de, en), o.ink === k, () => setOverlay({ ink: k }), { dot: k === "WHITE" ? "#fff" : k === "BLACK" ? "#14140F" : accent }));
     // black ink needs a lighter, not a darker, background
-    out.push(note(o.ink === "BLACK" ? tr("AUFHELLEN", "LIGHTEN") : tr("ABDUNKELN", "DARKEN")));
+    out.push(note(o.ink === "BLACK" ? tr("Aufhellen", "Lighten") : tr("Abdunkeln", "Darken")));
     DIM_LABELS.forEach(([de, en], i) => out.push(chip(tr(de, en), o.dim === i, () => setOverlay({ dim: i }))));
     if (bg) {
       // a gradient of nothing is invisible: turning it on with darken off picks "medium"
@@ -266,7 +266,7 @@ function controls(w) {
     if (video) out.push(chip(tr("Ton behalten", "Keep sound"), on && o.sound, bake({ sound: !(on && o.sound) })));
     // only a picture that isn't 9:16 leaves room to fill
     if (bg && needsBackdrop(bg.naturalWidth || bg.width, bg.naturalHeight || bg.height)) {
-      out.push(note(tr("FORMAT", "FORMAT")));
+      out.push(note("Format"));
       const dots = { 2: NAVY, 3: BURGUNDY, 5: "#0C0D0B" };
       BACKDROP_LABELS.forEach(([de, en], i) => out.push(chip(tr(de, en), on && o.backdrop === i, bake({ backdrop: i }), { dot: dots[i] })));
     }
@@ -301,7 +301,7 @@ function show() {
   photo.classList.toggle("on", !!state.background || !!state.backgroundUrl);
   // short enough for a half-width tile at 360 px; the tile title already says what it is
   photo.querySelector("span").textContent = state.video ? "Video" : state.backgroundUrl ? tr("Gesetzt", "Set") : tr("Wählen", "Pick");
-  $("save").textContent = videoStory() ? tr("MP4 sichern", "Save MP4") : tr("PNG sichern", "Save PNG");
+  $("save").textContent = videoStory() ? tr("MP4 speichern", "Save MP4") : tr("PNG speichern", "Save PNG");
   photo.querySelector("i").textContent = state.backgroundUrl ? "✕" : "+";
   route.classList.toggle("on", !!state.route);
   route.querySelector("span").textContent = state.route
@@ -419,9 +419,9 @@ $("save").onclick = async () => {
     const f = await storyFile();
     download(f);
     if (state.style === "OVERLAY") rememberLook();
-    const saved = f.type.startsWith("video/") ? tr("Video gesichert", "Video saved") : tr("PNG gesichert", "PNG saved");
+    const saved = f.type.startsWith("video/") ? tr("Video gespeichert", "Video saved") : tr("PNG gespeichert", "PNG saved");
     toast(/iPhone|iPad/.test(navigator.userAgent) ? tr("Tipp: „Teilen“ → „Sichern“ legt es in Fotos ab", "Tip: “Share” → “Save” puts it in Photos") : saved);
-  } catch (e) { if (e?.message !== "busy") toast(e?.message === NO_RECORDER ? NO_RECORDER : tr("Sichern hat nicht geklappt", "Saving failed")); }
+  } catch (e) { if (e?.message !== "busy") toast(e?.message === NO_RECORDER ? NO_RECORDER : tr("Speichern hat nicht geklappt", "Saving failed")); }
 };
 $("share").onclick = async () => {
   try {
@@ -433,7 +433,7 @@ $("share").onclick = async () => {
     } catch (e) {
       if (e?.name === "AbortError") return;
       // also after a long video recording: browsers only open the share sheet right after a tap
-      download(f); toast(tr("Teilen ging nicht, die Datei wurde gesichert", "Couldn't share, the file was saved instead"));
+      download(f); toast(tr("Teilen ging nicht, die Datei wurde gespeichert", "Couldn't share, the file was saved instead"));
     }
   } catch (e) { if (e?.message !== "busy") toast(e?.message === NO_RECORDER ? NO_RECORDER : tr("Teilen fehlgeschlagen", "Sharing failed")); }
 };
@@ -464,7 +464,7 @@ function showSources() {
   $("steps").replaceChildren(
     step(tr("Werte", "Numbers"), source.numbers),
     step(tr("Karte · optional", "Map · optional"), source.map),
-    step(tr("Sticker oder Story", "Sticker or story"), ["Gestalten, dann als Sticker-PNG sichern oder als fertige Story mit deinem Foto oder Video.", "Style it, then save a sticker PNG or a finished story with your photo or video."]),
+    step(tr("Sticker oder Story", "Sticker or story"), ["Gestalten, dann als Sticker-PNG speichern oder als fertige Story mit deinem Foto oder Video.", "Style it, then save a sticker PNG or a finished story with your photo or video."]),
   );
   // bring the picked chip into view sideways only; scrollIntoView would also move the page
   const row = $("sources"), on = row.querySelector('[aria-pressed="true"]');

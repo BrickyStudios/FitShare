@@ -158,6 +158,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
             }
+            val before = _state.value.workout
             _state.update {
                 // One workout often comes as two shares (Gadgetbridge FIT, OpenTracks KMZ) in either order; start times decide.
                 // A new FIT/JSON keeps the open route only if it started at the same time, otherwise it's a new workout.
@@ -176,6 +177,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     error = problems.takeIf { p -> p.isNotEmpty() }?.joinToString("\n")
                 )
             }
+            _state.value.workout?.let { after -> if (pickMissesDistance(_overlay.value.stats, before, after)) updateOverlay { it.copy(stats = null) } }
         } }
     }
 

@@ -210,6 +210,13 @@ test("stats, hero and pick order", () => {
   assert.deepEqual(D.pickStats(w2, ["AVG_HR", "LAPS", "DISTANCE"], 3).map((x) => x.key), ["AVG_HR", "DISTANCE"]);
   assert.deepEqual(D.toggleStat(["DISTANCE", "TIME", "SPEED"], "AVG_HR", 3), ["TIME", "SPEED", "AVG_HR"]);
   assert.deepEqual(D.toggleStat(["DISTANCE"], "DISTANCE", 3), ["DISTANCE"]);
+  const watchOnly = D.mergeWorkout({ ...D.emptyStats(), activeSeconds: 3600, averageHR: 140, maxHR: 170 }, null, null);
+  const withRoute = D.mergeWorkout({ ...D.emptyStats(), activeSeconds: 3600, averageHR: 140, maxHR: 170, distanceMeters: 30000 }, null, null);
+  assert.equal(D.pickMissesDistance(["AVG_HR", "MAX_HR"], watchOnly, withRoute), true);
+  assert.equal(D.pickMissesDistance(["AVG_HR", "MAX_HR"], null, withRoute), true);
+  assert.equal(D.pickMissesDistance(null, watchOnly, withRoute), false);
+  assert.equal(D.pickMissesDistance(["AVG_HR", "PACE"], watchOnly, withRoute), false);
+  assert.equal(D.pickMissesDistance(["AVG_HR", "MAX_HR"], withRoute, withRoute), false);
   const swim = D.storyContent(D.mergeWorkout({ ...D.emptyStats(), activeSeconds: 1800, distanceMeters: 1000, laps: 40, swolf: 38, swimStyle: "freestyle" }, null, null));
   assert.equal(swim.cells[1].value, "3:00");
   assert.equal(swim.cells[1].unit, "/100M");

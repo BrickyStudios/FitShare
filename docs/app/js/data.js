@@ -140,6 +140,12 @@ export function pickStats(w, chosen, max) {
   return picked.length ? picked : all.slice(0, max);
 }
 
+/** Stats picked while the workout had no distance (watch file alone) would keep distance, speed and pace off the sticker once a route brings them. Then the pick goes back to Auto. */
+export function pickMissesDistance(chosen, before, after) {
+  return !!chosen && (before?.distanceMeters ?? 0) <= 0 && after.distanceMeters > 0 &&
+    !chosen.some((k) => k === "DISTANCE" || k === "SPEED" || k === "PACE");
+}
+
 /** Tap order counts. Tapping a chosen stat removes it (never the last one); a new one past the limit pushes out the oldest. */
 export function toggleStat(current, key, max) {
   if (current.includes(key)) return current.length > 1 ? current.filter((k) => k !== key) : current;

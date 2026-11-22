@@ -100,10 +100,13 @@ async function open(files) {
   // One workout often comes as two shares (Gadgetbridge FIT, OpenTracks KMZ) in either order; start times decide.
   // A new FIT/JSON keeps the open route only if it started at the same time; a route on its own joins the open
   // workout unless their start times clearly differ. Otherwise it's a new workout: route, sport and photo go.
+  const before = workout();
   const same = stats ? !route && D.sameStart(stats, state.route) === true : route ? D.sameStart(state.stats, route) !== false : true;
   if (!same) { state.stats = null; state.route = null; state.sport = null; setBackground(null); }
   if (stats) state.stats = stats;
   if (route) state.route = route;
+  const after = workout();
+  if (after && D.pickMissesDistance(state.overlay.stats, before, after)) { state.overlay = { ...state.overlay, stats: null }; store.set("overlay", state.overlay); }
   saveSession();
   setBusy(false);
   if (problems.length) showError(problems.join("\n"));

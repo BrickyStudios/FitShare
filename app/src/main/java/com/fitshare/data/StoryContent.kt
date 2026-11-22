@@ -107,6 +107,14 @@ fun Workout.pickStats(chosen: List<StatKey>?, max: Int): List<Stat> {
     return picked.ifEmpty { all.take(max) }
 }
 
+/**
+ * Stats picked while the workout had no distance (watch file alone) would keep distance, speed and pace
+ * off the sticker once a route brings them. Then the pick goes back to Auto.
+ */
+fun pickMissesDistance(chosen: List<StatKey>?, before: Workout?, after: Workout): Boolean =
+    chosen != null && (before?.distanceMeters ?: 0.0) <= 0 && after.distanceMeters > 0 &&
+        chosen.none { it == StatKey.DISTANCE || it == StatKey.SPEED || it == StatKey.PACE }
+
 /** "SONNTAG, 21. JUNI 2026 · 17:57" / "SUNDAY, 21 JUNE 2026 · 17:57" */
 fun formatStoryDate(millis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
     DateTimeFormatter.ofPattern(tr("EEEE, d. MMMM yyyy · HH:mm", "EEEE, d MMMM yyyy · HH:mm"), loc())

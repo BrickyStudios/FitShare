@@ -12,8 +12,8 @@ android {
         applicationId = "com.fitshare"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
-        versionName = "1.15.0"
+        versionCode = 22
+        versionName = "1.15.1"
     }
 
     // Release key lives only in CI secrets (and ~/.config/fitshare on the maintainer's machine).

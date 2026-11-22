@@ -1,6 +1,7 @@
 package com.fitshare.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -82,6 +83,18 @@ class ParsingTest {
         assertEquals(listOf(StatKey.DISTANCE, StatKey.TIME, StatKey.SPEED), w.pickStats(null, 3).map { it.key })
         assertEquals(listOf(StatKey.AVG_HR, StatKey.DISTANCE), w.pickStats(listOf(StatKey.AVG_HR, StatKey.LAPS, StatKey.DISTANCE), 3).map { it.key })
         assertEquals(listOf(StatKey.DISTANCE, StatKey.TIME), w.pickStats(listOf(StatKey.LAPS), 2).map { it.key }) // nothing usable → default
+    }
+
+    @Test fun statsPickedWithoutDistanceMakeWayForTheRoute() {
+        val watch = WorkoutStats(activeSeconds = 3600, averageHR = 140, maxHR = 170)
+        val before = mergeWorkout(watch, null, null) // watch file alone: no distance
+        val after = mergeWorkout(watch.copy(distanceMeters = 30000.0), null, null)
+        val hrOnly = listOf(StatKey.AVG_HR, StatKey.MAX_HR)
+        assertTrue(pickMissesDistance(hrOnly, before, after))
+        assertTrue(pickMissesDistance(hrOnly, null, after)) // both files at once, HR picked on an earlier watch-only workout
+        assertFalse(pickMissesDistance(null, before, after)) // Auto shows distance anyway
+        assertFalse(pickMissesDistance(listOf(StatKey.AVG_HR, StatKey.PACE), before, after)) // a look with pace stays
+        assertFalse(pickMissesDistance(hrOnly, after, after)) // HR only on a ride with distance: on purpose
     }
 
     @Test fun englishLabelsAndNumbers() {
